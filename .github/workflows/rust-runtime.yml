@@ -120,6 +120,7 @@ jobs:
               address = json.load(f)
           assert profile['radices'] == [17, 17, 9, 9]
           assert profile['total_conformations'] == 23409
+          assert profile['numerical_profile'] == 'IGM-PENTA-CRT-F64-LUT-BLOCK-CIRCULANT-ZRESIDUAL-V1'
           assert address['index'] == address['round_trip_index'] == 17000
           assert profile['biological_validity_claimed'] is False
           print('OK: PENTA-CRT execution profile and mixed-radix address')
@@ -132,11 +133,14 @@ jobs:
           with open('/tmp/igm-penta-verify.json', encoding='utf-8') as f:
               report = json.load(f)
           assert report['accepted'] is True
+          assert report['planar_block_evaluations_per_conformation'] == 45
+          assert report['sparse_j_evaluations_per_conformation'] == 15
           assert report['structured_distance_evaluations_per_conformation'] == 60
           assert report['brute_distance_evaluations_per_conformation'] == 120
+          assert report['exact_z_residual_corrections_per_conformation'] == 105
           assert report['max_block_reuse_vs_brute_pair_residual'] <= report['residual_tolerance']
           assert report['biological_validity_claimed'] is False
-          print('OK: PENTA-CRT structured reuse remains within reference tolerance')
+          print('OK: PENTA-CRT XY structured reuse + exact Z residuals remain within reference tolerance')
           PY
       - name: PENTA-CRT optimized worker-independent identity
         run: |
@@ -151,7 +155,8 @@ jobs:
           assert one['result_sha256'] == seven['result_sha256']
           assert one['diagnostic_xor_fnv1a64'] == seven['diagnostic_xor_fnv1a64']
           assert one['manifest_sha256'] != seven['manifest_sha256']
-          assert one['actual_distance_evaluations'] * 2 == one['logical_pair_checks']
+          assert one['structured_distance_evaluations'] * 2 == one['logical_pair_checks']
+          assert one['planar_block_evaluations'] + one['sparse_j_evaluations'] == one['structured_distance_evaluations']
           assert one['hot_loop_trig_calls'] == 0 == seven['hot_loop_trig_calls']
           assert one['hot_loop_sqrt_calls'] == 0 == seven['hot_loop_sqrt_calls']
           assert one['per_conformation_heap_allocations'] == 0
