@@ -1,0 +1,55 @@
+{
+  "schema": "IGM-PENTA-CRT-CPU-PROFILE-V1",
+  "profile_id": "IGM-PENTA-CRT-SYMMETRIC-V0",
+  "version": "0.1.0",
+  "model_id": "IGM-SCHEMATIC-PENTAMER-V0",
+  "validation_level": "V0",
+  "symmetry": {
+    "computational_symmetry": "C5",
+    "status": "assumed",
+    "biological_symmetry_claimed": false,
+    "notes": "Synthetic optimization fixture only. Exact C5 reuse is an execution assumption for this V0 profile, not a claim about source-informed IgM biology."
+  },
+  "degrees_of_freedom": [
+    {
+      "id": "left_fab_delta_deg",
+      "unit": "degree",
+      "scope": "all-left-fab-placeholders",
+      "status": "assumed",
+      "values": [-8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8],
+      "notes": "Synthetic shared left-arm articulation offsets for runtime verification. Not a measured hinge distribution."
+    },
+    {
+      "id": "right_fab_delta_deg",
+      "unit": "degree",
+      "scope": "all-right-fab-placeholders",
+      "status": "assumed",
+      "values": [-8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8],
+      "notes": "Synthetic shared right-arm articulation offsets for runtime verification. Not a measured hinge distribution."
+    },
+    {
+      "id": "jchain_dx",
+      "unit": "model-unit",
+      "scope": "jchain:0",
+      "status": "assumed",
+      "values": [-0.04, -0.03, -0.02, -0.01, 0, 0.01, 0.02, 0.03, 0.04],
+      "notes": "Synthetic sparse X defect applied only to the V0 J-chain marker."
+    },
+    {
+      "id": "jchain_dy",
+      "unit": "model-unit",
+      "scope": "jchain:0",
+      "status": "assumed",
+      "values": [-0.04, -0.03, -0.02, -0.01, 0, 0.01, 0.02, 0.03, 0.04],
+      "notes": "Synthetic sparse Y defect applied only to the V0 J-chain marker."
+    }
+  ],
+  "claims": {
+    "biological_validity_claimed": false,
+    "clinical_validity_claimed": false,
+    "medical_device_claimed": false,
+    "diagnostic_use_claimed": false,
+    "treatment_use_claimed": false
+  },
+  "notes": "Execution-only discrete state profile for Phase 3B. Its 17 x 17 x 9 x 9 = 23,409 conformations are computational fixtures, not asserted biological conformations."
+}
