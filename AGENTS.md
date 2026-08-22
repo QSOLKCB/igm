@@ -72,6 +72,18 @@ If a proposed task requires human participants or their data, stop and identify 
 - Tensor and graph representations are computational structures, not biological claims.
 - Each biologically meaningful parameter must support explicit provenance.
 - Unknown or unsupported values must remain unknown/assumed, not silently invented.
+- `unknown` parameters must not carry a runtime value; use `assumed` for explicit placeholders.
+- `observed`, `source-derived`, and `calibrated` parameters require source provenance and derivation metadata.
+- V0–V2 profiles must keep `biological_validity_claimed=false`.
+- Component identifiers must be unique within a profile.
+
+## Profile validation
+
+`schemas/model-profile.schema.json` defines the portable structural contract.
+
+`tools/validate_profile.py` is the dependency-free semantic pre-execution gate for cross-field requirements that portable JSON Schema cannot express directly, including uniqueness by component `id`.
+
+Future runtimes, Pages tools, and accelerator paths must reject a profile that fails either structural/schema validation or the semantic pre-execution gate. Do not bypass the validator because a renderer or kernel could otherwise consume the data.
 
 ## Validation
 
@@ -89,6 +101,7 @@ Prefer:
 - bounded inputs;
 - deterministic partitioning;
 - canonical serialization for evidence records;
+- strict standards-compliant JSON without NaN/Infinity extensions;
 - explicit version/commit/source identities;
 - separate correctness and performance reports;
 - rejected-run preservation where useful.
@@ -104,6 +117,8 @@ Any new biological source or calibrated parameter must document:
 - what remains unsupported;
 - model/profile version using it.
 
+A publicly reachable URL does not itself grant redistribution permission. Record access and reuse status explicitly and verify the source's current terms before packaging source artifacts.
+
 ## Medical-device boundary
 
 Intended purpose controls regulatory status. If a change introduces patient-specific diagnosis, prognosis, monitoring, treatment, clinical decision support, or another medical-device purpose, do not casually merge it into the research profile. Open a dedicated regulatory/ethics design task and require qualified review.
@@ -114,4 +129,11 @@ Do not imply affiliation, endorsement, approval or sponsorship by Flinders Unive
 
 ## CI gate
 
-PRs must pass `python3 tools/validate_docs.py` until broader implementation CI replaces or extends it.
+PRs must pass:
+
+```bash
+python3 tools/validate_docs.py
+python3 tools/validate_profile.py --self-test
+```
+
+until broader implementation CI replaces or extends these gates.
