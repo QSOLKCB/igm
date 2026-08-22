@@ -17,12 +17,32 @@ Build reproducible research infrastructure for IgM structural simulation while m
 
 Never collapse these layers.
 
+## Core invariant
+
+**INV-BIO-001: Perfect Mathematics Does Not Equal Perfect Biological Reality.**
+
+This is a hard project invariant, not explanatory prose.
+
+Preserve:
+
+```text
+mathematical correctness
+    != computational correctness
+    != biological validity
+    != clinical validity
+```
+
+If code, documentation, a model profile, an automated report or a proposed claim violates this separation, reject the promotion and require external evidence appropriate to the biological or clinical claim.
+
+See `docs/CORE_INVARIANTS.md` and `governance/policy.json`.
+
 ## Mandatory reading before changes
 
 Read:
 
 - `README.md`
 - `README4AI.md`
+- `docs/CORE_INVARIANTS.md`
 - `docs/MEDICAL_RESEARCH_BOUNDARY.md`
 - `docs/AUSTRALIAN_ETHICS_AND_REGULATORY.md`
 - `docs/ARCHITECTURE.md`
