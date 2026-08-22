@@ -19,6 +19,13 @@ function finite(value, label) {
   return value;
 }
 
+function finiteNumber(value, label) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error(`${label} must be an actual finite JSON number`);
+  }
+  return value;
+}
+
 export function stableStringify(value) {
   if (value === null || typeof value === "boolean" || typeof value === "string") {
     return JSON.stringify(value);
@@ -51,10 +58,52 @@ export function parameterMap(profile) {
   return new Map((profile.parameters ?? []).map((p) => [p.name, p]));
 }
 
+export function validateParameterBounds(profile) {
+  let checked = 0;
+  for (const item of profile.parameters ?? []) {
+    const hasLower = item.lower_bound !== undefined && item.lower_bound !== null;
+    const hasUpper = item.upper_bound !== undefined && item.upper_bound !== null;
+    if ("value" in item && typeof item.value === "number") {
+      finiteNumber(item.value, `${item.name}.value`);
+    }
+    if (!hasLower && !hasUpper) continue;
+    checked += 1;
+    if (!("value" in item)) throw new Error(`${item.name} declares bounds but has no value`);
+    const value = finiteNumber(item.value, `${item.name}.value`);
+    const lower = hasLower ? finiteNumber(item.lower_bound, `${item.name}.lower_bound`) : null;
+    const upper = hasUpper ? finiteNumber(item.upper_bound, `${item.name}.upper_bound`) : null;
+    if (lower !== null && upper !== null && lower > upper) {
+      throw new Error(`${item.name} lower_bound exceeds upper_bound`);
+    }
+    if (lower !== null && value < lower) throw new Error(`${item.name} is below lower_bound`);
+    if (upper !== null && value > upper) throw new Error(`${item.name} is above upper_bound`);
+  }
+  return Object.freeze({passed: true, checked});
+}
+
 function parameterValue(params, name) {
   const item = params.get(name);
   if (!item || !("value" in item)) throw new Error(`missing value-bearing parameter: ${name}`);
-  return finite(Number(item.value), name);
+  const value = finiteNumber(item.value, name);
+  const hasLower = item.lower_bound !== undefined && item.lower_bound !== null;
+  const hasUpper = item.upper_bound !== undefined && item.upper_bound !== null;
+  if (hasLower) {
+    const lower = finiteNumber(item.lower_bound, `${name}.lower_bound`);
+    if (value < lower) throw new Error(`${name} is below lower_bound`);
+  }
+  if (hasUpper) {
+    const upper = finiteNumber(item.upper_bound, `${name}.upper_bound`);
+    if (value > upper) throw new Error(`${name} is above upper_bound`);
+  }
+  return value;
+}
+
+function integerParameterValue(params, name) {
+  const value = parameterValue(params, name);
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new Error(`${name} must be a non-negative safe integer`);
+  }
+  return value;
 }
 
 function assertProfileBoundary(profile) {
@@ -74,10 +123,49 @@ function assertProfileBoundary(profile) {
       throw new Error(`unknown parameter may not carry value: ${parameter.name}`);
     }
   }
+  validateParameterBounds(profile);
+}
+
+function componentIndex(profile) {
+  return new Map((profile.components ?? []).map((component) => [component.id, component]));
+}
+
+function constraintIndex(profile) {
+  return new Map((profile.constraints ?? []).map((constraint) => [constraint.id, constraint]));
+}
+
+function requireComponent(index, id, expectedKind = null) {
+  const component = index.get(id);
+  if (!component) throw new Error(`profile component missing for adapter id: ${id}`);
+  if (expectedKind !== null && component.kind !== expectedKind) {
+    throw new Error(`${id} must have kind ${expectedKind}, got ${component.kind}`);
+  }
+  return component;
+}
+
+function requireConstraint(index, id) {
+  const constraint = index.get(id);
+  if (!constraint) throw new Error(`profile constraint missing for adapter id: ${id}`);
+  return constraint;
+}
+
+function componentMetadata(component) {
+  return {
+    source_status: component.source_status,
+    source_ids: Object.freeze([...(component.source_ids ?? [])]),
+    notes: component.notes ?? ""
+  };
 }
 
 function point(id, kind, x, y, z = 0, metadata = {}) {
-  return Object.freeze({id, kind, x: finite(x, `${id}.x`), y: finite(y, `${id}.y`), z: finite(z, `${id}.z`), ...metadata});
+  return Object.freeze({
+    id,
+    kind,
+    x: finite(x, `${id}.x`),
+    y: finite(y, `${id}.y`),
+    z: finite(z, `${id}.z`),
+    ...metadata
+  });
 }
 
 function relation(id, source, target, relationshipClass, options = {}) {
@@ -89,6 +177,8 @@ function relation(id, source, target, relationshipClass, options = {}) {
     directed: Boolean(options.directed),
     weight: options.weight ?? null,
     status: options.status ?? "assumed",
+    source_ids: Object.freeze([...(options.source_ids ?? [])]),
+    constraint_id: options.constraint_id ?? null,
     semantics: options.semantics ?? "synthetic V0 relationship"
   });
 }
@@ -123,57 +213,135 @@ export function graphMetrics(nodes, relations) {
   });
 }
 
+function participantsOf(constraint) {
+  const participants = constraint.definition?.participants;
+  if (!Array.isArray(participants) || !participants.length || !participants.every((id) => typeof id === "string")) {
+    throw new Error(`${constraint.id} requires a non-empty string participants array`);
+  }
+  if (new Set(participants).size !== participants.length) {
+    throw new Error(`${constraint.id} contains duplicate participants`);
+  }
+  return participants;
+}
+
 function buildGeometry(profile) {
   const params = parameterMap(profile);
-  const sectors = parameterValue(params, "assembly_sector_count");
+  const components = componentIndex(profile);
+  const constraints = constraintIndex(profile);
+  const sectors = integerParameterValue(params, "assembly_sector_count");
   if (sectors !== 5) throw new Error("V0 fixture requires exactly five schematic sectors");
   const radius = parameterValue(params, "core_radius");
   const fabLength = parameterValue(params, "fab_length");
   const spread = parameterValue(params, "fab_spread_deg") * Math.PI / 180;
   const jOffset = parameterValue(params, "jchain_offset");
-  const labels = ["a", "b", "c", "d", "e"];
+
+  const ringConstraint = requireConstraint(constraints, "constraint:five-sector-ring");
+  const ringParticipants = participantsOf(ringConstraint);
+  if (ringParticipants.length !== sectors) {
+    throw new Error("five-sector ring participant count must equal assembly_sector_count");
+  }
+  if (ringConstraint.definition?.closed !== true) {
+    throw new Error("V0 five-sector ring constraint must remain closed");
+  }
+
+  const armsConstraint = requireConstraint(constraints, "constraint:two-arms-per-sector");
+  if (armsConstraint.definition?.arms_per_subunit !== 2) {
+    throw new Error("V0 adapter requires exactly two schematic arms per subunit");
+  }
+
   const points = [];
   const relations = [];
 
-  for (let i = 0; i < sectors; i += 1) {
-    const key = labels[i];
+  for (let i = 0; i < ringParticipants.length; i += 1) {
+    const subunitId = ringParticipants[i];
+    const subunit = requireComponent(components, subunitId, "schematic-igm-subunit");
+    if (!subunitId.startsWith("subunit:")) throw new Error(`unsupported V0 subunit id: ${subunitId}`);
+    const key = subunitId.slice("subunit:".length);
     const theta = -Math.PI / 2 + (TAU * i / sectors);
     const sx = radius * Math.cos(theta);
     const sy = radius * Math.sin(theta);
     const sz = 0.08 * Math.sin(theta * 2);
-    points.push(point(`subunit:${key}`, "schematic-igm-subunit", sx, sy, sz, {sector: i, theta}));
+    points.push(point(subunitId, subunit.kind, sx, sy, sz, {
+      sector: i,
+      theta,
+      ...componentMetadata(subunit)
+    }));
 
     for (const [side, sign] of [["l", -1], ["r", 1]]) {
+      const armId = `fab:${key}:${side}`;
+      const arm = requireComponent(components, armId, "schematic-fab-arm");
       const armTheta = theta + sign * spread;
       const fx = sx + fabLength * Math.cos(armTheta);
       const fy = sy + fabLength * Math.sin(armTheta);
       const fz = sz + sign * 0.06 * Math.cos(theta);
-      points.push(point(`fab:${key}:${side}`, "schematic-fab-arm", fx, fy, fz, {sector: i, side, theta: armTheta}));
-      relations.push(relation(`edge:${key}:${side}`, `subunit:${key}`, `fab:${key}:${side}`, "structural", {
+      points.push(point(armId, arm.kind, fx, fy, fz, {
+        sector: i,
+        side,
+        theta: armTheta,
+        ...componentMetadata(arm)
+      }));
+      relations.push(relation(`edge:${key}:${side}`, subunitId, armId, "structural", {
+        status: armsConstraint.status,
+        source_ids: armsConstraint.source_ids,
+        constraint_id: armsConstraint.id,
         semantics: "synthetic V0 ownership/articulation relation"
       }));
     }
   }
 
-  for (let i = 0; i < sectors; i += 1) {
-    const a = labels[i];
-    const b = labels[(i + 1) % sectors];
-    relations.push(relation(`edge:ring:${a}:${b}`, `subunit:${a}`, `subunit:${b}`, "structural", {
-      semantics: "synthetic V0 ring adjacency"
+  for (let i = 0; i < ringParticipants.length; i += 1) {
+    const source = ringParticipants[i];
+    const target = ringParticipants[(i + 1) % ringParticipants.length];
+    relations.push(relation(`edge:ring:${i}`, source, target, "structural", {
+      status: ringConstraint.status,
+      source_ids: ringConstraint.source_ids,
+      constraint_id: ringConstraint.id,
+      semantics: "synthetic V0 ring adjacency derived from profile participant order"
     }));
   }
 
-  points.push(point("jchain:0", "schematic-j-chain-constraint", -jOffset, -jOffset * 0.35, 0, {constraintOnly: true}));
-  relations.push(relation("edge:j:a", "jchain:0", "subunit:a", "constraint", {semantics: "synthetic V0 asymmetry marker"}));
-  relations.push(relation("edge:j:e", "jchain:0", "subunit:e", "constraint", {semantics: "synthetic V0 asymmetry marker"}));
+  const jConstraint = requireConstraint(constraints, "constraint:jchain-marker");
+  const jParticipants = participantsOf(jConstraint);
+  const jMarkers = jParticipants.filter(
+    (id) => requireComponent(components, id).kind === "schematic-j-chain-constraint"
+  );
+  if (jMarkers.length !== 1) {
+    throw new Error("constraint:jchain-marker must contain exactly one schematic J-chain marker");
+  }
+  const jMarkerId = jMarkers[0];
+  const jMarker = requireComponent(components, jMarkerId, "schematic-j-chain-constraint");
+  const jTargets = jParticipants.filter((id) => id !== jMarkerId);
+  if (!jTargets.length) throw new Error("constraint:jchain-marker requires at least one target");
+  for (const target of jTargets) requireComponent(components, target, "schematic-igm-subunit");
+
+  points.push(point(jMarkerId, jMarker.kind, -jOffset, -jOffset * 0.35, 0, {
+    constraintOnly: true,
+    ...componentMetadata(jMarker)
+  }));
+  jTargets.forEach((target, index) => {
+    relations.push(relation(`edge:j:${index}`, jMarkerId, target, "constraint", {
+      status: jConstraint.status,
+      source_ids: jConstraint.source_ids,
+      constraint_id: jConstraint.id,
+      semantics: "synthetic V0 asymmetry marker derived from profile participants"
+    }));
+  });
+
+  const producedIds = new Set(points.map((p) => p.id));
+  const profileIds = new Set(profile.components.map((component) => component.id));
+  if (producedIds.size !== profileIds.size || [...profileIds].some((id) => !producedIds.has(id))) {
+    throw new Error("V0 adapter must consume every declared profile component exactly once");
+  }
 
   const hyperedges = Object.freeze([
     Object.freeze({
       id: "hyperedge:pentamer-core",
       relationshipClass: "constraint",
-      participants: Object.freeze(labels.map((x) => `subunit:${x}`)),
-      status: "assumed",
-      semantics: "synthetic V0 grouped core constraint"
+      participants: Object.freeze([...ringParticipants]),
+      status: ringConstraint.status,
+      source_ids: Object.freeze([...(ringConstraint.source_ids ?? [])]),
+      constraint_id: ringConstraint.id,
+      semantics: "synthetic V0 grouped core constraint derived from profile participants"
     })
   ]);
 
@@ -182,6 +350,7 @@ function buildGeometry(profile) {
 
 export function buildCanonicalState(profile) {
   assertProfileBoundary(profile);
+  const bounds = validateParameterBounds(profile);
   const geometry = buildGeometry(profile);
   const distances = computeDistanceMatrix(geometry.points);
   const params = parameterMap(profile);
@@ -205,9 +374,13 @@ export function buildCanonicalState(profile) {
     },
     graphMetrics: graphMetrics(geometry.points, geometry.relations),
     sampling: {
-      logical: parameterValue(params, "logical_ensemble_size"),
-      evaluated: parameterValue(params, "evaluated_sample_count"),
-      displayed: parameterValue(params, "displayed_sample_count")
+      logical: integerParameterValue(params, "logical_ensemble_size"),
+      evaluated: integerParameterValue(params, "evaluated_sample_count"),
+      displayed: integerParameterValue(params, "displayed_sample_count")
+    },
+    validation: {
+      finiteAndBoundsPassed: bounds.passed,
+      boundedParameterCount: bounds.checked
     },
     claims: Object.freeze({...profile.claims}),
     invariants: Object.freeze([
@@ -231,17 +404,23 @@ export function deepFreeze(value) {
 }
 
 export function rigidTransformPoints(points, angle, tx, ty, tz = 0) {
-  finite(angle, "angle"); finite(tx, "tx"); finite(ty, "ty"); finite(tz, "tz");
+  finite(angle, "angle");
+  finite(tx, "tx");
+  finite(ty, "ty");
+  finite(tz, "tz");
   const c = Math.cos(angle);
   const s = Math.sin(angle);
-  return points.map((p) => point(
-    p.id,
-    p.kind,
-    p.x * c - p.y * s + tx,
-    p.x * s + p.y * c + ty,
-    p.z + tz,
-    {transformed: true}
-  ));
+  return points.map((p) => {
+    const {id, kind, x, y, z, ...metadata} = p;
+    return point(
+      id,
+      kind,
+      x * c - y * s + tx,
+      x * s + y * c + ty,
+      z + tz,
+      {...metadata, transformed: true}
+    );
+  });
 }
 
 export function maxDistanceResidual(a, b) {
