@@ -28,6 +28,7 @@ REQUIRED_FILES = [
     "governance/policy.json",
     "research/sources.json",
     "schemas/model-profile.schema.json",
+    "tools/validate_profile.py",
 ]
 
 INVARIANT_FILES = [
@@ -40,16 +41,29 @@ INVARIANT_FILES = [
     "governance/policy.json",
 ]
 
+BIOLOGICAL_SOURCE_CLASSES = {
+    "peer-reviewed-literature",
+    "public-structure",
+    "background-only",
+}
+
 
 def fail(message: str) -> None:
     print(f"FAIL: {message}", file=sys.stderr)
     raise SystemExit(1)
 
 
+def reject_json_constant(value: str) -> None:
+    raise ValueError(f"non-standard JSON constant is forbidden: {value}")
+
+
 def load_json(path: str):
     try:
-        return json.loads((ROOT / path).read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+        return json.loads(
+            (ROOT / path).read_text(encoding="utf-8"),
+            parse_constant=reject_json_constant,
+        )
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
         fail(f"{path}: {exc}")
 
 
@@ -75,6 +89,8 @@ def main() -> int:
         fail("human_data_default must remain deny")
     if policy.get("clinical_use_default") != "deny":
         fail("clinical_use_default must remain deny")
+    if policy.get("institutional_endorsement_default") != "deny":
+        fail("institutional_endorsement_default must remain deny")
     invariants = {item.get("id"): item for item in policy.get("core_invariants", [])}
     inv = invariants.get("INV-BIO-001")
     if not inv or inv.get("name") != INVARIANT or inv.get("normative") is not True:
@@ -83,6 +99,9 @@ def main() -> int:
     schema = load_json("schemas/model-profile.schema.json")
     if schema.get("properties", {}).get("schema", {}).get("const") != "IGM-MODEL-PROFILE-V1":
         fail("model profile schema contract changed unexpectedly")
+    components = schema.get("properties", {}).get("components", {})
+    if components.get("x-igm-unique-by") != "id":
+        fail("component-id semantic uniqueness contract missing")
     claims = schema.get("properties", {}).get("claims", {}).get("properties", {})
     for key in (
         "clinical_validity_claimed",
@@ -92,6 +111,19 @@ def main() -> int:
     ):
         if claims.get(key, {}).get("const") is not False:
             fail(f"upstream model schema must hard-code {key}=false")
+
+    schema_text = (ROOT / "schemas/model-profile.schema.json").read_text(encoding="utf-8")
+    for required_fragment in (
+        '"enum": ["V0", "V1", "V2"]',
+        '"biological_validity_claimed"',
+        '"const": false',
+        '"status": {"const": "unknown"}',
+        '"not": {"required": ["value"]}',
+        '"enum": ["observed", "source-derived", "calibrated"]',
+        '"required": ["source_id", "derivation"]',
+    ):
+        if required_fragment not in schema_text:
+            fail(f"model schema missing hardening fragment: {required_fragment}")
 
     registry = load_json("research/sources.json")
     if registry.get("schema") != "igm-source-registry/1":
@@ -107,6 +139,20 @@ def main() -> int:
         url = source.get("url")
         if not isinstance(url, str) or not url.startswith("https://"):
             fail(f"source {source_id} must have an https URL")
+        if source.get("class") in BIOLOGICAL_SOURCE_CLASSES:
+            access = source.get("access")
+            if not isinstance(access, dict):
+                fail(f"biological source {source_id} requires explicit access metadata")
+            if access.get("status") not in {
+                "publicly-accessible",
+                "open-access",
+                "registration-required",
+                "restricted",
+            }:
+                fail(f"biological source {source_id} has unknown access status")
+            redistribution = access.get("redistribution")
+            if not isinstance(redistribution, str) or not redistribution:
+                fail(f"biological source {source_id} requires redistribution guidance")
 
     required_source_ids = {
         "structure.chen-2022-full-length-igm",
