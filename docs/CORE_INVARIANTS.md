@@ -100,6 +100,28 @@ Assembly, array, graph, fabric, vortex-inspired, camera, filtering and layout co
 
 Objects placed near each other on screen, adjacent fabric rows, nearby graph nodes, or visually clustered marks are not thereby biologically close or interacting. Such interpretation requires explicit model semantics and appropriate evidence.
 
+## INV-RUNTIME-001 — Execution Adjacency Does Not Imply Biological Adjacency
+
+Runtime scheduling structures are not biological structures.
+
+In particular, adjacency in `IGM-EXEC-GRAPH-C5-K2-C3-V1`, CRT traversal order, memory-neighbour placement, warp-lane position, SIMD grouping, chunk membership, worker assignment, or device assignment must not be interpreted as physical proximity, molecular contact, biochemical interaction, causal influence, or any other biological relationship.
+
+The execution graph is permitted to be chosen for deterministic traversal, locality, memory coalescing, parallel scheduling, or other computational reasons. A separate model/profile graph must carry any biological or structural relationship semantics, with appropriate provenance.
+
+### Required consequence
+
+The project must keep these namespaces conceptually separate:
+
+```text
+model / biological graph
+execution / scheduling graph
+provenance graph
+visualization graph
+tensor-factor graph
+```
+
+An implementation may map between them only through an explicit declared adapter. A convenient execution mapping cannot silently create biological edges.
+
 ## Change control
 
 Changes that weaken these invariants require an explicit major governance review and must not be merged as routine implementation changes.

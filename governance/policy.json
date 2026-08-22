@@ -72,6 +72,12 @@
       "name": "Visual Proximity Does Not Imply Biological Proximity",
       "normative": true,
       "statement": "Screen-space adjacency, row order, force-layout placement, or any other visual closeness is presentation only unless a model profile explicitly defines and supports a corresponding biological relation."
+    },
+    {
+      "id": "INV-RUNTIME-001",
+      "name": "Execution Adjacency Does Not Imply Biological Adjacency",
+      "normative": true,
+      "statement": "Adjacency in scheduler graphs, traversal order, memory layout, warp lanes, worker partitions, chunks, or device assignments is computational metadata only and must not be promoted into biological adjacency, molecular interaction, structural proximity, or causal semantics."
     }
   ],
   "biological_parameter_statuses": [
@@ -102,6 +108,7 @@
     "docs/AUSTRALIAN_ETHICS_AND_REGULATORY.md",
     "docs/ARCHITECTURE.md",
     "docs/VISUAL_LAB.md",
-    "docs/CLEAN_ROOM_VISUALIZATION.md"
+    "docs/CLEAN_ROOM_VISUALIZATION.md",
+    "docs/EXECUTION_CAMPAIGNS.md"
   ]
 }

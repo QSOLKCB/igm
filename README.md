@@ -23,11 +23,19 @@ mathematical correctness
 
 See [Core Invariants](docs/CORE_INVARIANTS.md).
 
+## Runtime invariant
+
+> **Execution Adjacency Does Not Imply Biological Adjacency.**
+
+`INV-RUNTIME-001` prevents scheduler graphs, CRT traversal order, memory adjacency, warp/SIMD lanes, chunks, workers, or future device assignments from being mistaken for molecular contacts or biological relationships.
+
+The runtime is allowed to arrange work in mathematically convenient ways. Biology is under no obligation to share that arrangement.
+
 ## Why this repository exists
 
 IgM is structurally interesting because experimentally observed assemblies can involve multimeric organization, flexible antibody arms, asymmetric constraints, and large conformational state spaces. Those properties are computationally suitable for deterministic CPU/GPU exploration, provided the software does not confuse a convenient mathematical representation with biology.
 
-The project therefore separates five layers:
+The project therefore separates the main layers:
 
 ```text
 published / approved structural evidence
@@ -40,12 +48,18 @@ published / approved structural evidence
    geometry | tensor | graph
                 |
                 v
- deterministic reference runtime
+ deterministic Rust reference
+                |
+                v
+ PENTA-CRT optimization profile
+                |
+                v
+ campaign / memory / receipt layer
                 |
         +-------+-------+
         |               |
         v               v
-   CPU reference    GPU accelerators
+   CPU reference    future GPU adapters
         |               |
         +-------+-------+
                 v
@@ -55,7 +69,7 @@ published / approved structural evidence
  provenance + validation reports
 ```
 
-A vortex-like coordinate system, tensor representation, graph representation, or articulated geometry may be useful computationally. None of those representations is, by itself, a claim that an IgM molecule *is* a vortex, tensor, graph, or any other mathematical object.
+A vortex-like coordinate system, tensor representation, graph representation, execution graph, or articulated geometry may be useful computationally. None of those representations is, by itself, a claim that an IgM molecule *is* a vortex, tensor, graph, scheduler topology, or any other mathematical object.
 
 ## Research boundary
 
@@ -99,6 +113,39 @@ A model profile should be able to declare, for example:
 - evidence level and validation status.
 
 The runtime should consume the profile through a stable interface. Better evidence should therefore replace a profile or adapter, not force a rewrite of deterministic scheduling, GPU sharding, evidence manifests, or reproducibility tooling.
+
+## Current deterministic runtime
+
+### Phase 3A reference
+
+`IGM-RUST-RUNTIME-V1` provides the bounded Rust reference/orchestration layer with exact integer indexing, deterministic worker partitioning, checked f64 geometry, reproducible identities, and browser-fixture parity.
+
+### Phase 3B PENTA-CRT CPU profile
+
+`IGM-PENTA-CRT-CPU-V1` adds an explicit synthetic 23,409-state execution profile:
+
+```text
+17 × 17 × 9 × 9 = 23,409
+```
+
+It uses mixed-radix indexing, deterministic articulation lookup tables, PENTAFOLD/C5 reuse where mathematically valid, sparse J-marker corrections, and squared-distance hot loops. The accepted optimization reuses the C5-structured XY projection and restores exact local Z residuals rather than pretending the entire V0 3D fixture is block-circulant.
+
+### Phase 3C campaign layer
+
+`IGM-EXEC-CAMPAIGN-V1` adds:
+
+- exact `C5 □ K2 □ C3` execution graph receipts;
+- `INV-RUNTIME-001`;
+- a 32-lane aligned memory contract with 30 meaningful and two inactive padding lanes;
+- bounded memory planning and deterministic chunk streaming;
+- worker/chunk-independent correctness receipts;
+- separate benchmark observations;
+- privacy-safe environment provenance;
+- accepted/rejected campaign preservation and `SHA256SUMS`.
+
+The execution graph and padded lanes are scheduler/memory structures only. They are not biological state claims and do not establish GPU execution.
+
+See [Phase 3C Execution Campaigns](docs/EXECUTION_CAMPAIGNS.md).
 
 ## Planned computational representations
 
@@ -148,6 +195,24 @@ The project is intentionally documented so that researchers at institutions such
 
 See [Flinders Research Handoff](docs/FLINDERS_RESEARCH_HANDOFF.md).
 
+## Quick runtime examples
+
+```bash
+cargo test --locked --all-targets
+cargo build --locked --release
+
+./target/release/igm-runtime validate
+./target/release/igm-penta-crt verify --samples 257
+./target/release/igm-campaign graph
+./target/release/igm-campaign layout
+./target/release/igm-campaign run \
+  --start 100 --count 4096 --workers 16 \
+  --budget-bytes 1048576 --verify-samples 257 \
+  --out artifacts/campaign-example
+
+python3 tools/validate_campaign.py artifacts/campaign-example
+```
+
 ## Repository map
 
 ```text
@@ -157,17 +222,23 @@ AGENTS.md                         mandatory agent rules
 DISCLAIMER.md                     research/medical/legal-context disclaimer
 CONTRIBUTING.md                   contribution and provenance rules
 ROADMAP.md                        staged implementation plan
-docs/CORE_INVARIANTS.md           non-promotable scientific invariants
+docs/CORE_INVARIANTS.md           non-promotable scientific/runtime invariants
 docs/ARCHITECTURE.md              replaceable model/runtime architecture
+docs/RUST_RUNTIME.md              Phase 3A Rust reference contract
+docs/PENTA_CRT_CPU.md             Phase 3B CPU optimization profile
+docs/EXECUTION_CAMPAIGNS.md       Phase 3C graph/memory/campaign receipts
 docs/MEDICAL_RESEARCH_BOUNDARY.md non-clinical intended-use boundary
 docs/AUSTRALIAN_ETHICS_AND_REGULATORY.md Australian governance baseline
 docs/RESEARCH_DATA_AND_PROVENANCE.md provenance and data rules
 docs/VALIDATION_LADDER.md         computational vs biological validation
 docs/FLINDERS_RESEARCH_HANDOFF.md institutional handoff notes
 governance/policy.json            machine-readable safety/governance contract
-schemas/model-profile.schema.json future model-profile schema
+schemas/model-profile.schema.json model-profile schema
+schemas/campaign-manifest.schema.json campaign manifest schema
+schemas/correctness-receipt.schema.json correctness receipt schema
 research/sources.json             structural/governance source registry
 tools/validate_docs.py            deterministic documentation checks
+tools/validate_campaign.py        persisted campaign validator
 ```
 
 ## Licence
@@ -178,4 +249,4 @@ Apache-2.0 enables broad research reuse, modification, distribution and collabor
 
 ## Current status
 
-**PR 1 documentation/governance foundation.** No biological simulator is claimed to be validated at this stage.
+Phases 1, 2, 3A, and 3B are merged. Phase 3C campaign/execution infrastructure is implemented in PR #5 pending review. The current biological model remains **V0 schematic** and no clinical validity is claimed.

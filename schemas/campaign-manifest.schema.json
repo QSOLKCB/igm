@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/QSOLKCB/igm/schemas/campaign-manifest.schema.json",
+  "title": "IGM Phase 3C Campaign Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "campaign_contract",
+    "correctness_result_sha256",
+    "model_profile_sha256",
+    "optimization_profile_sha256",
+    "graph_sha256",
+    "traversal_sha256",
+    "requested_workers",
+    "chunk_count",
+    "artifacts",
+    "manifest_sha256",
+    "benchmark_identity_is_correctness_identity",
+    "rejected"
+  ],
+  "properties": {
+    "schema": {"const": "IGM-CAMPAIGN-MANIFEST-V1"},
+    "campaign_contract": {"const": "IGM-EXEC-CAMPAIGN-V1"},
+    "correctness_result_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "model_profile_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "optimization_profile_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "graph_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "traversal_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "requested_workers": {"type": "integer", "minimum": 1},
+    "chunk_count": {"type": "integer", "minimum": 1},
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sha256", "bytes", "role"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "bytes": {"type": "integer", "minimum": 1},
+          "role": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "benchmark_identity_is_correctness_identity": {"const": false},
+    "rejected": {"const": false}
+  }
+}
