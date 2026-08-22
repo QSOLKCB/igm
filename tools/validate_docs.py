@@ -10,6 +10,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 INVARIANT = "Perfect Mathematics Does Not Equal Perfect Biological Reality"
 RUNTIME_INVARIANT = "Execution Adjacency Does Not Imply Biological Adjacency"
+PHASE3A_GATE = (
+    "Rust/Pages agreement establishes implementation agreement for the schematic fixture only. "
+    "PR3 does not create a source-informed biological model, molecular dynamics engine, or clinical result."
+)
 
 REQUIRED_FILES = [
     "LICENSE",
@@ -27,6 +31,7 @@ REQUIRED_FILES = [
     "docs/VALIDATION_LADDER.md",
     "docs/FLINDERS_RESEARCH_HANDOFF.md",
     "docs/EXECUTION_CAMPAIGNS.md",
+    "docs/PROPERTY_FUZZING.md",
     "governance/policy.json",
     "research/sources.json",
     "schemas/model-profile.schema.json",
@@ -97,6 +102,21 @@ def main() -> int:
         text = (ROOT / relative).read_text(encoding="utf-8")
         if RUNTIME_INVARIANT not in text:
             fail(f"runtime invariant missing from {relative}")
+
+    property_doc = (ROOT / "docs/PROPERTY_FUZZING.md").read_text(encoding="utf-8")
+    for required in (
+        "IGM-PROPERTY-FUZZ-V1",
+        "property-based fuzzing",
+        "implementation evidence for the schematic fixture only",
+        "does not create a source-informed biological model",
+    ):
+        if required not in property_doc:
+            fail(f"property-fuzz documentation missing required boundary/contract text: {required!r}")
+    roadmap = (ROOT / "ROADMAP.md").read_text(encoding="utf-8")
+    if "- [x] Add property-based fuzzing beyond deterministic edge-case tests." not in roadmap:
+        fail("Phase 3A property-fuzz roadmap item must remain complete")
+    if PHASE3A_GATE not in roadmap:
+        fail("Phase 3A gate text changed or is missing from ROADMAP.md")
 
     license_text = (ROOT / "LICENSE").read_text(encoding="utf-8")
     if "Apache License" not in license_text or "Version 2.0" not in license_text:
