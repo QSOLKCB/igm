@@ -1,12 +1,29 @@
 # IGM — AI/agent project contract
 
-This file is normative for automated contributors together with `AGENTS.md` and `governance/policy.json`.
+This file is normative for automated contributors together with `AGENTS.md`, `docs/CORE_INVARIANTS.md`, and `governance/policy.json`.
 
 ## Project purpose
 
 IGM is research software for deterministic simulation of **hypothetical or source-informed IgM structural models**. The runtime may support articulated geometry, tensors, graphs, and optional vortex-inspired coordinates.
 
 The project does **not** define biological truth. It provides reproducible computational machinery that qualified researchers can populate with stronger structural or experimental evidence.
+
+## Hard invariant
+
+**INV-BIO-001: Perfect Mathematics Does Not Equal Perfect Biological Reality.**
+
+This sentence is normative. Mathematical exactness, deterministic execution, numerical convergence, reproducibility, CPU/GPU agreement, or accelerator performance do not by themselves establish biological validity or clinical validity.
+
+Agents must preserve:
+
+```text
+mathematical correctness
+    != computational correctness
+    != biological validity
+    != clinical validity
+```
+
+See `docs/CORE_INVARIANTS.md` and `governance/policy.json`.
 
 ## Authority order
 
