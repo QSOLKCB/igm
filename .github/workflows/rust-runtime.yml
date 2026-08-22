@@ -1,0 +1,87 @@
+name: IGM Rust runtime checks
+
+on:
+  push:
+    branches:
+      - main
+      - "agent/**"
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "runtime/**"
+      - "profiles/**"
+      - "schemas/**"
+      - "tools/validate_profile.py"
+      - "tools/validate_json_schema.py"
+      - "tests/site-model.mjs"
+      - "site/igm-model.mjs"
+      - "docs/RUST_RUNTIME.md"
+      - "docs/RUNTIME_LINEAGE.md"
+      - "ROADMAP.md"
+      - ".github/workflows/rust-runtime.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "runtime/**"
+      - "profiles/**"
+      - "schemas/**"
+      - "tools/validate_profile.py"
+      - "tools/validate_json_schema.py"
+      - "tests/site-model.mjs"
+      - "site/igm-model.mjs"
+      - "docs/RUST_RUNTIME.md"
+      - "docs/RUNTIME_LINEAGE.md"
+      - "ROADMAP.md"
+      - ".github/workflows/rust-runtime.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  rust-reference:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Toolchain identity
+        run: |
+          rustc --version
+          cargo --version
+      - name: Existing profile gates
+        run: |
+          python3 tools/validate_json_schema.py --self-test
+          python3 tools/validate_profile.py --self-test
+          python3 tools/validate_json_schema.py profiles/igm-schematic-pentamer-v0.json
+          python3 tools/validate_profile.py profiles/igm-schematic-pentamer-v0.json
+      - name: Preserve browser reference
+        run: node tests/site-model.mjs
+      - name: Rust tests
+        run: cargo test --all-targets
+      - name: Release build
+        run: cargo build --release
+      - name: Runtime profile admission
+        run: ./target/release/igm-runtime validate > /tmp/igm-validate.json
+      - name: Exact CRT address probe
+        run: ./target/release/igm-runtime address 17 > /tmp/igm-address.json
+      - name: Worker-independent result identity
+        run: |
+          ./target/release/igm-runtime run --work-items 257 --workers 1 > /tmp/igm-run-1.json
+          ./target/release/igm-runtime run --work-items 257 --workers 7 > /tmp/igm-run-7.json
+          python3 - <<'PY'
+          import json
+          with open('/tmp/igm-run-1.json', encoding='utf-8') as f:
+              one = json.load(f)['summary']
+          with open('/tmp/igm-run-7.json', encoding='utf-8') as f:
+              seven = json.load(f)['summary']
+          assert one['result_sha256'] == seven['result_sha256']
+          assert one['diagnostic_xor_fnv1a64'] == seven['diagnostic_xor_fnv1a64']
+          assert one['manifest_sha256'] != seven['manifest_sha256']
+          assert one['hot_loop_trig_calls'] == 0 == seven['hot_loop_trig_calls']
+          assert one['hot_loop_sqrt_calls'] == 0 == seven['hot_loop_sqrt_calls']
+          assert one['biological_validity_claimed'] is False
+          assert one['clinical_validity_claimed'] is False
+          print('OK: worker-independent IGM Rust result identity')
+          PY
