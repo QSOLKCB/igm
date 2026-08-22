@@ -11,6 +11,7 @@ on:
       - "runtime/**"
       - "profiles/**"
       - "schemas/**"
+      - "tools/validate_docs.py"
       - "tools/validate_profile.py"
       - "tools/validate_json_schema.py"
       - "tests/site-model.mjs"
@@ -28,6 +29,7 @@ on:
       - "runtime/**"
       - "profiles/**"
       - "schemas/**"
+      - "tools/validate_docs.py"
       - "tools/validate_profile.py"
       - "tools/validate_json_schema.py"
       - "tests/site-model.mjs"
@@ -50,8 +52,9 @@ jobs:
         run: |
           rustc --version
           cargo --version
-      - name: Existing profile gates
+      - name: Mandatory documentation and profile gates
         run: |
+          python3 tools/validate_docs.py
           python3 tools/validate_json_schema.py --self-test
           python3 tools/validate_profile.py --self-test
           python3 tools/validate_json_schema.py profiles/igm-schematic-pentamer-v0.json
@@ -59,9 +62,9 @@ jobs:
       - name: Preserve browser reference
         run: node tests/site-model.mjs
       - name: Rust tests
-        run: cargo test --all-targets
+        run: cargo test --locked --all-targets
       - name: Release build
-        run: cargo build --release
+        run: cargo build --locked --release
       - name: Runtime profile admission
         run: ./target/release/igm-runtime validate > /tmp/igm-validate.json
       - name: Exact CRT address probe
@@ -79,9 +82,26 @@ jobs:
           assert one['result_sha256'] == seven['result_sha256']
           assert one['diagnostic_xor_fnv1a64'] == seven['diagnostic_xor_fnv1a64']
           assert one['manifest_sha256'] != seven['manifest_sha256']
+          assert one['requested_workers'] == 1
+          assert seven['requested_workers'] == 7
+          assert one['workers'] == 1
+          assert seven['workers'] == 7
+          assert one['numerical_profile'] == 'IGM-RUST-F64-DETERMINISTIC-POLY-V1'
           assert one['hot_loop_trig_calls'] == 0 == seven['hot_loop_trig_calls']
           assert one['hot_loop_sqrt_calls'] == 0 == seven['hot_loop_sqrt_calls']
           assert one['biological_validity_claimed'] is False
           assert one['clinical_validity_claimed'] is False
           print('OK: worker-independent IGM Rust result identity')
+          PY
+      - name: Manifest records requested versus effective workers
+        run: |
+          ./target/release/igm-runtime run --work-items 1 --workers 7 > /tmp/igm-run-small.json
+          python3 - <<'PY'
+          import json
+          with open('/tmp/igm-run-small.json', encoding='utf-8') as f:
+              summary = json.load(f)['summary']
+          assert summary['requested_workers'] == 7
+          assert summary['workers'] == 1
+          assert len(summary['worker_summaries']) == 1
+          print('OK: manifest plan is reconstructible from report')
           PY
