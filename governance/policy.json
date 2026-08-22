@@ -36,6 +36,42 @@
       "name": "Runtime Success Is Not Clinical Evidence",
       "normative": true,
       "statement": "Passing tests, residual gates, reproducibility checks, receipts, or benchmarks do not establish diagnosis, prognosis, treatment, monitoring, or clinical validation."
+    },
+    {
+      "id": "INV-MATH-002",
+      "name": "A Multidimensional Array Is Not Automatically a Tensor",
+      "normative": true,
+      "statement": "Numerical arrays must not be called tensors unless transformation semantics or another mathematically valid tensor definition is explicitly declared."
+    },
+    {
+      "id": "INV-MATH-003",
+      "name": "Coordinate Presentation Must Not Alter Coordinate-Invariant Observables",
+      "normative": true,
+      "statement": "Rigid changes of presentation coordinates may change displayed coordinates but must preserve declared coordinate-invariant observables such as pairwise Euclidean distances."
+    },
+    {
+      "id": "INV-GRAPH-001",
+      "name": "Graph Representation Must Match Declared Relationship Semantics",
+      "normative": true,
+      "statement": "Direction, weight, multiplicity, bipartite structure, hyperedges, and relationship types require explicit model semantics rather than visual or categorical assumptions."
+    },
+    {
+      "id": "INV-GRAPH-002",
+      "name": "Topology Is Measured or Sourced, Never Assumed",
+      "normative": true,
+      "statement": "Properties such as scale-free, small-world, hub, motif, centrality, or community interpretation must be measured or sourced and must not be inferred merely because a model is biological."
+    },
+    {
+      "id": "INV-VIZ-001",
+      "name": "Visualization Layout Must Not Alter Model Semantics",
+      "normative": true,
+      "statement": "Changing assembly, array, graph, fabric, cyclic, camera, filter, or layout presentation must not mutate canonical model identity or scientific semantics."
+    },
+    {
+      "id": "INV-VIZ-002",
+      "name": "Visual Proximity Does Not Imply Biological Proximity",
+      "normative": true,
+      "statement": "Screen-space adjacency, row order, force-layout placement, or any other visual closeness is presentation only unless a model profile explicitly defines and supports a corresponding biological relation."
     }
   ],
   "biological_parameter_statuses": [
@@ -64,6 +100,8 @@
     "docs/CORE_INVARIANTS.md",
     "docs/MEDICAL_RESEARCH_BOUNDARY.md",
     "docs/AUSTRALIAN_ETHICS_AND_REGULATORY.md",
-    "docs/ARCHITECTURE.md"
+    "docs/ARCHITECTURE.md",
+    "docs/VISUAL_LAB.md",
+    "docs/CLEAN_ROOM_VISUALIZATION.md"
   ]
 }
