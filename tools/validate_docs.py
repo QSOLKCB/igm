@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic Phase-1 governance/documentation validation for IGM."""
+"""Deterministic governance/documentation validation for IGM."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 INVARIANT = "Perfect Mathematics Does Not Equal Perfect Biological Reality"
+RUNTIME_INVARIANT = "Execution Adjacency Does Not Imply Biological Adjacency"
 
 REQUIRED_FILES = [
     "LICENSE",
@@ -25,10 +26,14 @@ REQUIRED_FILES = [
     "docs/RESEARCH_DATA_AND_PROVENANCE.md",
     "docs/VALIDATION_LADDER.md",
     "docs/FLINDERS_RESEARCH_HANDOFF.md",
+    "docs/EXECUTION_CAMPAIGNS.md",
     "governance/policy.json",
     "research/sources.json",
     "schemas/model-profile.schema.json",
+    "schemas/campaign-manifest.schema.json",
+    "schemas/correctness-receipt.schema.json",
     "tools/validate_profile.py",
+    "tools/validate_campaign.py",
 ]
 
 INVARIANT_FILES = [
@@ -38,6 +43,14 @@ INVARIANT_FILES = [
     "CONTRIBUTING.md",
     "docs/CORE_INVARIANTS.md",
     "docs/VALIDATION_LADDER.md",
+    "governance/policy.json",
+]
+
+RUNTIME_INVARIANT_FILES = [
+    "AGENTS.md",
+    "ROADMAP.md",
+    "docs/CORE_INVARIANTS.md",
+    "docs/EXECUTION_CAMPAIGNS.md",
     "governance/policy.json",
 ]
 
@@ -78,6 +91,11 @@ def main() -> int:
         if INVARIANT not in text:
             fail(f"hard invariant missing from {relative}")
 
+    for relative in RUNTIME_INVARIANT_FILES:
+        text = (ROOT / relative).read_text(encoding="utf-8")
+        if RUNTIME_INVARIANT not in text:
+            fail(f"runtime invariant missing from {relative}")
+
     license_text = (ROOT / "LICENSE").read_text(encoding="utf-8")
     if "Apache License" not in license_text or "Version 2.0" not in license_text:
         fail("LICENSE is not recognizably Apache-2.0")
@@ -95,6 +113,13 @@ def main() -> int:
     inv = invariants.get("INV-BIO-001")
     if not inv or inv.get("name") != INVARIANT or inv.get("normative") is not True:
         fail("INV-BIO-001 missing, renamed, or non-normative")
+    runtime_inv = invariants.get("INV-RUNTIME-001")
+    if (
+        not runtime_inv
+        or runtime_inv.get("name") != RUNTIME_INVARIANT
+        or runtime_inv.get("normative") is not True
+    ):
+        fail("INV-RUNTIME-001 missing, renamed, or non-normative")
 
     schema = load_json("schemas/model-profile.schema.json")
     if schema.get("properties", {}).get("schema", {}).get("const") != "IGM-MODEL-PROFILE-V1":
@@ -124,6 +149,18 @@ def main() -> int:
     ):
         if required_fragment not in schema_text:
             fail(f"model schema missing hardening fragment: {required_fragment}")
+
+    campaign_schema = load_json("schemas/campaign-manifest.schema.json")
+    if campaign_schema.get("properties", {}).get("schema", {}).get("const") != "IGM-CAMPAIGN-MANIFEST-V1":
+        fail("unexpected campaign manifest schema contract")
+    if campaign_schema.get("properties", {}).get("benchmark_identity_is_correctness_identity", {}).get("const") is not False:
+        fail("campaign schema must keep benchmark identity separate from correctness identity")
+    correctness_schema = load_json("schemas/correctness-receipt.schema.json")
+    correctness_props = correctness_schema.get("properties", {})
+    if correctness_props.get("inv_runtime_001", {}).get("const") != RUNTIME_INVARIANT:
+        fail("correctness schema must embed INV-RUNTIME-001")
+    if correctness_props.get("biological_validity_claimed", {}).get("const") is not False:
+        fail("correctness schema must forbid biological-validity promotion")
 
     registry = load_json("research/sources.json")
     if registry.get("schema") != "igm-source-registry/1":
@@ -176,7 +213,7 @@ def main() -> int:
         if phrase not in boundary:
             fail(f"medical boundary missing required phrase: {phrase!r}")
 
-    print("OK: IGM Phase-1 documentation/governance foundation validated")
+    print("OK: IGM documentation/governance foundation validated")
     return 0
 
 
