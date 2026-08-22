@@ -32,8 +32,10 @@ REQUIRED_FILES = [
     "schemas/model-profile.schema.json",
     "schemas/campaign-manifest.schema.json",
     "schemas/correctness-receipt.schema.json",
+    "schemas/phase3c-gate-receipt.schema.json",
     "tools/validate_profile.py",
     "tools/validate_campaign.py",
+    "tools/validate_campaign_v2.py",
 ]
 
 INVARIANT_FILES = [
@@ -151,16 +153,55 @@ def main() -> int:
             fail(f"model schema missing hardening fragment: {required_fragment}")
 
     campaign_schema = load_json("schemas/campaign-manifest.schema.json")
-    if campaign_schema.get("properties", {}).get("schema", {}).get("const") != "IGM-CAMPAIGN-MANIFEST-V1":
+    campaign_props = campaign_schema.get("properties", {})
+    if campaign_props.get("schema", {}).get("const") != "IGM-CAMPAIGN-MANIFEST-V2":
         fail("unexpected campaign manifest schema contract")
-    if campaign_schema.get("properties", {}).get("benchmark_identity_is_correctness_identity", {}).get("const") is not False:
+    if campaign_props.get("gate_contract", {}).get("const") != "IGM-PHASE3C-ACCEPTANCE-GATE-V1":
+        fail("campaign manifest must bind the Phase 3C acceptance gate")
+    if campaign_props.get("validation_level", {}).get("const") != "V0":
+        fail("campaign manifest must preserve V0 validation level")
+    if campaign_props.get("validation_level_promoted_by_runtime", {}).get("const") is not False:
+        fail("campaign manifest must forbid runtime validation-level promotion")
+    if campaign_props.get("benchmark_identity_is_correctness_identity", {}).get("const") is not False:
         fail("campaign schema must keep benchmark identity separate from correctness identity")
+
     correctness_schema = load_json("schemas/correctness-receipt.schema.json")
     correctness_props = correctness_schema.get("properties", {})
     if correctness_props.get("inv_runtime_001", {}).get("const") != RUNTIME_INVARIANT:
         fail("correctness schema must embed INV-RUNTIME-001")
     if correctness_props.get("biological_validity_claimed", {}).get("const") is not False:
         fail("correctness schema must forbid biological-validity promotion")
+    if correctness_props.get("verification_tolerance", {}).get("const") != 1e-12:
+        fail("correctness schema must pin the Phase 3B residual tolerance")
+
+    gate_schema = load_json("schemas/phase3c-gate-receipt.schema.json")
+    gate_props = gate_schema.get("properties", {})
+    if gate_props.get("schema", {}).get("const") != "IGM-PHASE3C-GATE-RECEIPT-V1":
+        fail("unexpected Phase 3C gate receipt schema")
+    if gate_props.get("gate_contract", {}).get("const") != "IGM-PHASE3C-ACCEPTANCE-GATE-V1":
+        fail("unexpected Phase 3C gate contract")
+    for key in (
+        "profile_identity_preserved",
+        "algorithm_identity_preserved",
+        "phase3b_residual_gate_passed",
+        "finite_and_bounded",
+        "declared_slice_preserved",
+        "correctness_identity_recomputed",
+        "worker_independent_correctness_identity",
+        "chunk_independent_correctness_identity",
+        "benchmark_timing_excluded_from_correctness_identity",
+        "accepted",
+    ):
+        if gate_props.get(key, {}).get("const") is not True:
+            fail(f"Phase 3C gate schema must require {key}=true")
+    for key in (
+        "implementation_structures_biological_relationships_claimed",
+        "validation_level_promoted_by_runtime",
+        "biological_validity_claimed",
+        "clinical_validity_claimed",
+    ):
+        if gate_props.get(key, {}).get("const") is not False:
+            fail(f"Phase 3C gate schema must require {key}=false")
 
     registry = load_json("research/sources.json")
     if registry.get("schema") != "igm-source-registry/1":
