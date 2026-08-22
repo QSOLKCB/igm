@@ -82,9 +82,11 @@ def main() -> int:
         fail("Phase 4 roadmap status must remain pending review/merge until PR #9 merges")
 
     readiness = (ROOT / "docs/PRE_PHASE5_READINESS.md").read_text(encoding="utf-8")
-    if "READY_ON_PHASE4_MERGE" not in readiness:
+    if "Status: **READY_ON_PHASE4_MERGE**." not in readiness:
         fail("pre-Phase 5 readiness must be READY_ON_PHASE4_MERGE on this branch")
-    if "READY_ON_MAIN" in readiness:
+    # The document may discuss the string READY_ON_MAIN as a future state. Only
+    # reject an actual readiness-status promotion before the Phase 4 merge.
+    if "Status: **READY_ON_MAIN**." in readiness:
         fail("Phase 5 readiness must not claim READY_ON_MAIN before Phase 4 merge")
 
     model_schema = load_json("schemas/model-profile.schema.json")
