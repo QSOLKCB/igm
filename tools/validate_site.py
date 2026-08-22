@@ -50,8 +50,11 @@ def main() -> int:
     require("NOT CLINICAL" in html, "UI must expose NOT CLINICAL")
     require(INVARIANTS["INV-BIO-001"] in html, "UI must expose INV-BIO-001 phrase")
     require("Math.random" not in combined, "canonical site code may not use Math.random")
-    require("biofabric" not in app.lower(), "app implementation must not contain BioFabric implementation code")
     require("BioFabric source code or assets" in html, "clean-room attribution boundary missing")
+
+    # Method names/citations are allowed. Third-party runtime imports are not.
+    require(not re.search(r"(?:import|from)\s+[^\n]*biofabric", combined, flags=re.I), "BioFabric implementation import is forbidden")
+    require(".jar" not in combined.lower(), "third-party Java/JAR runtime is forbidden in the static visualizer")
 
     remote_runtime = re.findall(r"<(?:script|link)[^>]+(?:src|href)=[\"']https?://", html, flags=re.I)
     require(not remote_runtime, "site may not load remote runtime scripts/styles")
