@@ -18,6 +18,7 @@ on:
       - "research/**"
       - "schemas/**"
       - "tools/validate_docs.py"
+      - "tools/validate_profile.py"
       - ".github/workflows/docs-foundation.yml"
   pull_request:
     branches:
@@ -35,6 +36,7 @@ on:
       - "research/**"
       - "schemas/**"
       - "tools/validate_docs.py"
+      - "tools/validate_profile.py"
       - ".github/workflows/docs-foundation.yml"
 
 permissions:
@@ -53,3 +55,5 @@ jobs:
           python3 -m json.tool schemas/model-profile.schema.json >/dev/null
       - name: Validate documentation and hard invariants
         run: python3 tools/validate_docs.py
+      - name: Validate model-profile semantic gate
+        run: python3 tools/validate_profile.py --self-test
