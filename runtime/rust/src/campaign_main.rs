@@ -4,7 +4,7 @@ use igm_runtime::phase3b::PentaCrtEngine;
 use igm_runtime::phase3c::{
     chunk_plan, execution_graph_receipt, memory_layout_receipt, persist_accepted_campaign,
     persist_rejected_campaign, plan_memory, run_campaign, CampaignConfig, DEFAULT_MEMORY_BUDGET_BYTES,
-    INV_RUNTIME_001, PHASE3C_CONTRACT,
+    INV_RUNTIME_001, PHASE3C_CONTRACT, PHASE3C_GATE_CONTRACT,
 };
 use igm_runtime::{RuntimeError, INV_BIO_001};
 use serde_json::json;
@@ -208,18 +208,23 @@ fn command_run(args: &[String]) -> Result<(), RuntimeError> {
     };
     let execution = match run_campaign(&engine, config) {
         Ok(execution) => execution,
-        Err(error) => return Err(preserve_rejection(&parsed.out, "campaign-execution", &error)),
+        Err(error) => return Err(preserve_rejection(&parsed.out, "phase3c-gate", &error)),
     };
     let manifest = persist_accepted_campaign(&parsed.out, &execution)?;
     print_json(&json!({
-        "schema": "IGM-CAMPAIGN-COMPLETION-V1",
+        "schema": "IGM-CAMPAIGN-COMPLETION-V2",
         "campaign_contract": PHASE3C_CONTRACT,
+        "phase3c_gate_contract": PHASE3C_GATE_CONTRACT,
+        "phase3c_gate_accepted": execution.gate.accepted,
+        "phase3c_gate_identity_sha256": execution.gate.gate_identity_sha256,
         "output_directory": parsed.out,
         "correctness_result_sha256": execution.correctness.result_sha256,
         "manifest_sha256": manifest.manifest_sha256,
         "chunk_count": execution.memory.chunk_count,
         "requested_workers": execution.benchmark.requested_workers,
         "verification_accepted": execution.correctness.verification_accepted,
+        "benchmark_timing_excluded_from_correctness_identity": execution.gate.benchmark_timing_excluded_from_correctness_identity,
+        "validation_level_promoted_by_runtime": false,
         "performance_claim": false,
         "biological_validity_claimed": false,
         "inv_bio_001": INV_BIO_001,
