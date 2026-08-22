@@ -121,7 +121,7 @@ Rust/Pages agreement establishes implementation agreement for the schematic fixt
 
 **Target: PR #4.**
 
-Status: **implemented in PR #4, pending review/merge**.
+Status: **complete and merged in PR #4**.
 
 Turn the PR3 reference machinery into a fast conformational execution engine while keeping every optimization independently testable against the f64 reference.
 
@@ -187,31 +187,80 @@ Optimization profiles may be faster than the reference but cannot become authori
 
 ## Phase 3C — Execution graph, memory layout, and campaign receipts
 
-**Likely target: PR #5.**
+**Target: PR #5.**
+
+Status: **implemented in PR #5, pending review/merge**.
 
 ### Execution graph
 
-- [ ] Define `G_exec = C5 □ K2 □ C3` as a scheduling/execution graph only.
-- [ ] Keep `G_exec` separate from the IGM model graph and provenance graph.
-- [ ] Add `INV-RUNTIME-001`: **Execution Adjacency Does Not Imply Biological Adjacency.**
-- [ ] Add exact neighbour tables generated from integer coordinates.
-- [ ] Add deterministic traversal/order receipts.
+- [x] Define `G_exec = C5 □ K2 □ C3` as a scheduling/execution graph only.
+- [x] Keep `G_exec` separate from the IGM model graph and provenance graph.
+- [x] Add `INV-RUNTIME-001`: **Execution Adjacency Does Not Imply Biological Adjacency.**
+- [x] Add exact neighbour tables generated from integer coordinates.
+- [x] Add deterministic graph/traversal SHA-256 receipts.
+
+Current scheduling graph contract:
+
+```text
+IGM-EXEC-GRAPH-C5-K2-C3-V1
+30 vertices
+regular degree 5
+75 undirected scheduling edges
+```
+
+No execution edge is a biological edge.
 
 ### GPU-shaped memory without GPU authority
 
-- [ ] Define 32-lane padded execution cell with 30 meaningful lanes and two explicitly inactive lanes.
-- [ ] Add AoSoA/SoA layouts suitable for CPU SIMD and future CUDA coalescing.
-- [ ] Keep padding lanes excluded from scientific/model counts.
-- [ ] Add alignment/size assertions.
-- [ ] Add memory-budget planner before allocation.
-- [ ] Add bounded chunk streaming for runs larger than resident buffers.
+- [x] Define 32-lane padded execution cell with 30 meaningful lanes and two explicitly inactive lanes.
+- [x] Add aligned fixed-width SoA/AoSoA-compatible layout suitable for CPU SIMD and future CUDA coalescing experiments.
+- [x] Keep padding lanes excluded from scientific/model counts.
+- [x] Add compile-time and runtime alignment/size assertions.
+- [x] Add fail-closed memory-budget planner before resident allocation/execution planning.
+- [x] Add bounded deterministic chunk streaming for campaigns larger than resident buffers.
+
+Current layout contract:
+
+```text
+IGM-WARP32-AOSOA-V1
+lanes 0..29  = meaningful execution addresses
+lanes 30..31 = inactive, non-semantic padding
+alignment    = 128 bytes
+```
+
+This is a CPU-side future-accelerator layout contract. It is not a claim that CUDA has executed it.
 
 ### Campaign identity
 
-- [ ] Add run/campaign schema with profile, runtime, algorithm, partition, and artifact identities.
-- [ ] Add rejected-run preservation.
-- [ ] Separate correctness receipt from benchmark receipt.
-- [ ] Add environment/toolchain provenance without raw machine identifiers by default.
+- [x] Add run/campaign schema with profile, runtime, algorithm, graph, partition, and artifact identities.
+- [x] Add rejected-run preservation with stage/reason receipts.
+- [x] Separate correctness receipt from benchmark receipt.
+- [x] Add environment/toolchain provenance without hostname, username, raw GPU UUIDs, serials, MAC addresses, or other raw machine identifiers by default.
+- [x] Add external `SHA256SUMS` over persisted campaign artifacts.
+- [x] Add dependency-free campaign-directory validation.
+- [x] Test correctness identity across different worker counts and chunk/memory budgets.
+
+Accepted campaign artifacts:
+
+```text
+correctness-receipt.json
+benchmark-receipt.json
+execution-graph.json
+memory-layout.json
+memory-plan.json
+environment.json
+chunks.json
+campaign-manifest.json
+SHA256SUMS
+```
+
+Correctness identity intentionally excludes timing, worker count, and chunk budget. Those execution-plan observations remain in benchmark/manifest records.
+
+### Phase 3C gate
+
+Execution topology, memory adjacency, warp/SIMD placement, chunk membership, worker assignment, and future device assignment are implementation structures only. They may improve locality or throughput, but they cannot create biological relationships or promote validation level.
+
+An accepted campaign must preserve the profile/algorithm identities, pass the Phase 3B residual gate, remain finite and bounded, produce a worker/chunk-independent correctness identity for the declared slice, and keep benchmark timing outside correctness identity.
 
 ---
 
@@ -321,7 +370,7 @@ GPU agreement is implementation evidence only. Performance cannot promote biolog
 
 ## Phase 9 — Optional regulated-research branch
 
-This phase is **not implied by the open-source runtime**. It exists only if qualified downstream collaborators intentionally pursue human-subject, clinical, diagnostic, monitoring, treatment, or medical-device work.
+This phase is **not implied by the open-source runtime**. It exists only if qualified downstream collaborators intentionally pursue human-subject, clinical, diagnostic, monitoring, treatment or medical-device work.
 
 - [ ] Determine intended purpose with qualified investigators.
 - [ ] Obtain institutional ethics/governance advice before using human participants/data.
