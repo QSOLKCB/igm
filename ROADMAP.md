@@ -58,7 +58,7 @@ The browser is a transparent research microscope, not biological authority and n
 
 **Target: PR #3.**
 
-Status: implementation underway/completed by PR #3.
+Status: **complete and merged in PR #3**.
 
 ### Native contract and admission
 
@@ -119,42 +119,65 @@ Rust/Pages agreement establishes implementation agreement for the schematic fixt
 
 ## Phase 3B — PENTA-CRT CPU optimization profile
 
-**Likely target: PR #4.**
+**Target: PR #4.**
+
+Status: **implemented in PR #4, pending review/merge**.
 
 Turn the PR3 reference machinery into a fast conformational execution engine while keeping every optimization independently testable against the f64 reference.
 
 ### Integer state space
 
-- [ ] Define explicit discrete degree-of-freedom profile rather than inventing hidden hinge values.
-- [ ] Add mixed-radix outer conformation indexing.
-- [ ] Add exact encode/decode round-trip tests for every configured radix.
-- [ ] Keep conformation identity independent of worker/device assignment.
-- [ ] Add deterministic range slicing for partial campaigns.
+- [x] Define explicit discrete degree-of-freedom profile rather than inventing hidden hinge values.
+- [x] Add mixed-radix outer conformation indexing.
+- [x] Add exhaustive exact encode/decode round-trip tests for the configured radices.
+- [x] Keep conformation identity independent of worker/device assignment.
+- [x] Add deterministic range slicing for partial campaigns.
+
+Current V0 execution profile:
+
+```text
+17 left-arm bins × 17 right-arm bins × 9 J-x bins × 9 J-y bins
+= 23,409 explicit synthetic execution states
+```
+
+These are computational fixture states, not asserted biological conformations.
 
 ### Pentafold reuse
 
 - [x] Initial C5 recurrence exists in PR3 for the static V0 geometry.
-- [ ] Generalize C5 recurrence to dynamic per-conformation geometry.
-- [ ] Evaluate one sector seed plus recurrence where profile symmetry permits it.
-- [ ] Apply J-chain/asymmetry terms as explicit sparse defects instead of silently destroying symmetric structure.
-- [ ] Never assume exact C5 biological symmetry for a source-informed profile unless the source/profile declares it.
+- [x] Generalize C5 recurrence to dynamic per-conformation V0 geometry.
+- [x] Evaluate one sector seed plus recurrence where the execution profile explicitly admits C5 reuse.
+- [x] Apply J-chain/asymmetry terms as explicit sparse defects instead of silently destroying symmetric structure.
+- [x] Reject biological-symmetry promotion: the execution profile declares C5 as `assumed` and `biological_symmetry_claimed=false`.
 
 ### Hot-loop reductions
 
-- [ ] Precompute bounded hinge `sin/cos` lookup tables for discrete execution profiles.
+- [x] Precompute bounded articulation `sin/cos` lookup tables for the discrete execution profile.
 - [x] Use squared distances for cutoff/steric predicates.
-- [ ] Compute square roots only for exported distance observables that actually require them.
-- [ ] Hoist profile constants and transforms out of the work-item loop.
-- [ ] Remove per-state heap allocation.
-- [ ] Add vectorization-friendly SoA representation.
-- [ ] Benchmark scalar versus vectorized/reference paths without changing scientific claims.
+- [x] Keep square roots out of the Phase 3B structural hot loop.
+- [x] Hoist profile constants, deterministic trig projection, and lookup construction out of the conformation loop.
+- [x] Remove per-conformation heap allocation from the optimization hot loop.
+- [x] Add fixed-size vectorization-friendly SoA geometry representation.
+- [ ] Add a dedicated scalar/reference-vs-optimized timing benchmark before making any speedup claim.
 
 ### Structured interaction reuse
 
-- [ ] Investigate block-circulant pair/interactions for the symmetric V0 execution profile.
-- [ ] Represent J-chain/asymmetry contributions as sparse correction terms where mathematically valid.
-- [ ] Test structured result against brute-force pair evaluation.
-- [ ] Reject the optimization when a future source profile does not satisfy its declared symmetry assumptions.
+- [x] Investigate block-circulant pair reuse for the symmetric V0 execution profile.
+- [x] Preserve the narrower result actually supported by the fixture: C5 block reuse is valid for the XY projection, not for all legacy V0 Z drawing terms.
+- [x] Reconstruct full non-J 3D squared distances with exact local `dz^2` residual corrections.
+- [x] Represent J-chain/asymmetry contributions as sparse direct corrections.
+- [x] Test the complete structured result against brute-force full-3D pair evaluation.
+- [x] Keep the `1e-12` implementation-equivalence gate rather than weakening it when the initial full-3D C5 hypothesis failed.
+- [x] Restrict the optimization admission path to the declared V0 execution profile so future source profiles cannot silently inherit the shortcut.
+
+Current accounting per conformation:
+
+```text
+45 planar block distance evaluations
++ 15 direct sparse-J 3D evaluations
++ 105 exact scalar dz² residual corrections
+-> complete canonical 120-pair full-3D sequence
+```
 
 ### Phase 3B gate
 
