@@ -12,7 +12,7 @@ Status: Phase 3B implementation for deterministic non-clinical research infrastr
 - base model: `IGM-SCHEMATIC-PENTAMER-V0`
 - execution profile: `IGM-PENTA-CRT-CPU-PROFILE-V1`
 - optimization engine: `IGM-PENTA-CRT-CPU-V1`
-- numerical profile: `IGM-PENTA-CRT-F64-LUT-BLOCK-CIRCULANT-V1`
+- numerical profile: `IGM-PENTA-CRT-F64-LUT-BLOCK-CIRCULANT-ZRESIDUAL-V1`
 - run schema: `IGM-PENTA-CRT-CPU-RUN-V1`
 - verification schema: `IGM-PENTA-CRT-VERIFY-V1`
 
@@ -73,39 +73,42 @@ The reference verifier deliberately recomputes those values instead of reading t
 
 No platform `libm` trigonometry enters correctness identity.
 
-## Block-circulant structured reuse
+## Structured C5 reuse with exact Z residuals
 
-The synthetic V0 execution profile declares an exact computational C5 layout for the 15 non-J nodes: five sectors with three nodes per sector.
+The first Phase 3B implementation deliberately tried full three-dimensional C5 block reuse. The residual gate rejected it. That failure was useful: the legacy Phase-2 V0 drawing has absolute-angle-dependent Z terms, so the complete 3D fixture is **not** block-circulant even though its XY construction is C5-structured.
 
-The brute-force 16-node pair set contains:
+The accepted implementation therefore makes the narrower mathematical claim that the **XY projection** of the 15 non-J nodes is C5-structured. It never silently upgrades that to a full-3D symmetry claim.
 
-```text
-16 choose 2 = 120 pair distances
-```
-
-The structured evaluator computes:
-
-- 45 entries for the five `3 x 3` sector blocks from sector zero;
-- 15 direct distances from the J marker to each symmetric node.
-
-That is:
+A brute-force 16-node pair set contains:
 
 ```text
-60 actual squared-distance evaluations
+16 choose 2 = 120 full 3D pair distances
 ```
 
-The complete canonical 120-pair sequence is then reconstructed from those cached block values. The optimization therefore halves the number of distance evaluations for this V0 fixture while preserving a full canonical pair sequence for deterministic hashing and residual comparison.
+The optimized evaluator computes:
 
-This is a mathematical/computational reuse claim only. It does not say IgM biology is block-circulant.
+- 45 planar XY squared-distance entries for the five `3 x 3` sector blocks from sector zero;
+- 15 direct full 3D J-marker-to-symmetric-node distances;
+- 105 exact local `dz^2` corrections for the non-J unordered pairs while reconstructing the canonical pair sequence.
+
+For a non-J pair, the reconstruction is exactly:
+
+```text
+d2 = cached_xy_d2 + (z_i - z_j)^2
+```
+
+The reported `structured_distance_evaluations_per_conformation = 60` counts the expensive vector-distance evaluations replaced by structured reuse: 45 planar block evaluations plus 15 sparse J evaluations. The 105 scalar `dz^2` corrections are reported separately and are **not** hidden as free work.
+
+This distinction matters. Phase 3B reduces repeated spatial-distance work for the declared V0 fixture, but it does not claim that every arithmetic operation has been halved, nor that the full 3D model is block-circulant.
 
 ## Sparse J-chain/asymmetry defect
 
-The J marker is intentionally excluded from the C5 block reuse. Its synthetic `dx`/`dy` state is applied as a sparse correction, and all 15 J-to-symmetric-node distances are evaluated directly.
+The J marker is intentionally excluded from the C5 block reuse. Its synthetic `dx`/`dy` state is applied as a sparse correction, and all 15 J-to-symmetric-node distances are evaluated directly in 3D.
 
 This is the implementation form of the design rule:
 
 ```text
-symmetric execution core + explicit sparse asymmetry
+structured execution core + explicit sparse asymmetry
 ```
 
 rather than silently forcing an asymmetric model into exact C5 symmetry.
@@ -129,15 +132,17 @@ The larger GPU-shaped AoSoA/32-lane memory contract remains Phase 3C work.
 `igm-penta-crt verify` samples the mixed-radix domain deterministically and compares:
 
 1. lookup-table dynamic geometry against a deterministic recomputed reference geometry;
-2. block-circulant pair reconstruction against brute-force evaluation of every pair.
+2. XY block reuse plus exact Z residual reconstruction against brute-force full-3D evaluation of every unordered pair.
 
 The current numerical acceptance tolerance is:
 
 ```text
-1e-12 model-unit^2 / coordinate residual domain
+1e-12
 ```
 
-This tolerance is an implementation-equivalence threshold for the declared f64 V0 numerical profile. It is not a biological tolerance and must not be weakened solely to make a failing optimization pass.
+This is an implementation-equivalence threshold for the declared f64 V0 numerical profile. It is not a biological tolerance and must not be weakened solely to make a failing optimization pass.
+
+The original full-3D reuse attempt produced a residual of about `4.95e-2` and was rejected rather than having the tolerance widened. The corrected representation preserves the legacy V0 Z terms explicitly.
 
 ## Result and manifest identity
 
@@ -183,6 +188,7 @@ Phase 3B does **not** establish:
 - molecular dynamics;
 - atomistic interactions;
 - a biological C5 symmetry law;
+- full-3D block-circulant IgM geometry;
 - clinical significance of any computed state;
 - patient-specific simulation;
 - GPU execution or GPU speedup;
