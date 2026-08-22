@@ -1,0 +1,73 @@
+name: IGM visual laboratory checks
+
+on:
+  push:
+    branches:
+      - main
+      - "agent/**"
+    paths:
+      - "site/**"
+      - "profiles/**"
+      - "tests/site-model.mjs"
+      - "tools/build_site_data.py"
+      - "tools/validate_site.py"
+      - "tools/validate_profile.py"
+      - "governance/**"
+      - "research/**"
+      - "docs/**"
+      - "ROADMAP.md"
+      - ".github/workflows/viz-ci.yml"
+      - ".github/workflows/pages.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "site/**"
+      - "profiles/**"
+      - "tests/site-model.mjs"
+      - "tools/build_site_data.py"
+      - "tools/validate_site.py"
+      - "tools/validate_profile.py"
+      - "governance/**"
+      - "research/**"
+      - "docs/**"
+      - "ROADMAP.md"
+      - ".github/workflows/viz-ci.yml"
+      - ".github/workflows/pages.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-viz:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Existing governance gates
+        run: |
+          python3 tools/validate_docs.py
+          python3 tools/validate_profile.py --self-test
+      - name: Validate V0 profile
+        run: python3 tools/validate_profile.py profiles/igm-schematic-pentamer-v0.json
+      - name: Validate Pages source boundary
+        run: python3 tools/validate_site.py
+      - name: Deterministic browser model tests
+        run: node tests/site-model.mjs
+      - name: Build deterministic site data
+        run: python3 tools/build_site_data.py
+      - name: Validate generated site data
+        run: |
+          python3 -m json.tool site/data/profile.json >/dev/null
+          python3 -m json.tool site/data/sources.json >/dev/null
+          python3 -m json.tool site/manifest.json >/dev/null
+          grep -q '"validation_level":"V0"' site/data/profile.json
+          grep -q '"non_clinical":true' site/manifest.json
+      - name: Enforce no canonical randomness
+        run: |
+          ! grep -R --line-number --fixed-string 'Math.random' site profiles
+      - name: Enforce visible research boundary
+        run: |
+          grep -q 'Perfect Mathematics Does Not Equal Perfect Biological Reality' site/index.html
+          grep -q 'V0 SCHEMATIC' site/index.html
+          grep -q 'NOT CLINICAL' site/index.html
