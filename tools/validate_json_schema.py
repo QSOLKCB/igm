@@ -3,6 +3,10 @@
 
 This implements the Draft-2020-12 keyword subset used by model-profile.schema.json.
 Cross-field project rules remain in validate_profile.py.
+
+The validator fails closed if the schema introduces a validation keyword this
+implementation does not understand. Annotation keywords and x-igm-* extensions
+may be present without affecting validation semantics.
 """
 
 from __future__ import annotations
@@ -15,6 +19,38 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_PATH = ROOT / "schemas" / "model-profile.schema.json"
+
+ANNOTATION_KEYS = {
+    "$schema",
+    "$id",
+    "$comment",
+    "title",
+    "description",
+    "default",
+    "examples",
+    "deprecated",
+    "readOnly",
+    "writeOnly",
+}
+SUPPORTED_VALIDATION_KEYS = {
+    "$ref",
+    "$defs",
+    "type",
+    "const",
+    "enum",
+    "required",
+    "properties",
+    "additionalProperties",
+    "minLength",
+    "pattern",
+    "minItems",
+    "uniqueItems",
+    "items",
+    "not",
+    "allOf",
+    "if",
+    "then",
+}
 
 
 class ValidationError(ValueError):
@@ -33,13 +69,20 @@ def load(path: Path) -> Any:
 
 
 def type_matches(value: Any, wanted: str) -> bool:
-    if wanted == "null": return value is None
-    if wanted == "object": return isinstance(value, dict)
-    if wanted == "array": return isinstance(value, list)
-    if wanted == "string": return isinstance(value, str)
-    if wanted == "boolean": return isinstance(value, bool)
-    if wanted == "integer": return isinstance(value, int) and not isinstance(value, bool)
-    if wanted == "number": return isinstance(value, (int, float)) and not isinstance(value, bool)
+    if wanted == "null":
+        return value is None
+    if wanted == "object":
+        return isinstance(value, dict)
+    if wanted == "array":
+        return isinstance(value, list)
+    if wanted == "string":
+        return isinstance(value, str)
+    if wanted == "boolean":
+        return isinstance(value, bool)
+    if wanted == "integer":
+        return isinstance(value, int) and not isinstance(value, bool)
+    if wanted == "number":
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
     raise ValidationError(f"unsupported schema type keyword: {wanted}")
 
 
@@ -57,10 +100,52 @@ def resolve_ref(root: dict[str, Any], ref: str) -> dict[str, Any]:
     return node
 
 
+def audit_schema(schema: Any, path: str = "$schema") -> None:
+    """Reject schema semantics this dependency-free validator would ignore."""
+    if not isinstance(schema, dict):
+        raise ValidationError(f"{path}: schema node must be an object")
+
+    for key in schema:
+        if key in ANNOTATION_KEYS or key in SUPPORTED_VALIDATION_KEYS or key.startswith("x-igm-"):
+            continue
+        raise ValidationError(
+            f"{path}: unsupported JSON Schema keyword {key!r}; implement it before relying on it"
+        )
+
+    additional = schema.get("additionalProperties")
+    if additional is not None and not isinstance(additional, bool):
+        raise ValidationError(
+            f"{path}.additionalProperties: schema-valued additionalProperties is not supported"
+        )
+
+    properties = schema.get("properties")
+    if properties is not None:
+        if not isinstance(properties, dict):
+            raise ValidationError(f"{path}.properties must be an object")
+        for name, child in properties.items():
+            audit_schema(child, f"{path}.properties[{name!r}]")
+
+    defs = schema.get("$defs")
+    if defs is not None:
+        if not isinstance(defs, dict):
+            raise ValidationError(f"{path}.$defs must be an object")
+        for name, child in defs.items():
+            audit_schema(child, f"{path}.$defs[{name!r}]")
+
+    for key in ("items", "not", "if", "then"):
+        if key in schema:
+            audit_schema(schema[key], f"{path}.{key}")
+
+    if "allOf" in schema:
+        if not isinstance(schema["allOf"], list):
+            raise ValidationError(f"{path}.allOf must be an array")
+        for index, child in enumerate(schema["allOf"]):
+            audit_schema(child, f"{path}.allOf[{index}]")
+
+
 def validate(value: Any, schema: dict[str, Any], root: dict[str, Any], path: str = "$") -> None:
     if "$ref" in schema:
         validate(value, resolve_ref(root, schema["$ref"]), root, path)
-        return
 
     if "const" in schema and value != schema["const"]:
         raise ValidationError(f"{path}: expected const {schema['const']!r}")
@@ -91,8 +176,7 @@ def validate(value: Any, schema: dict[str, Any], root: dict[str, Any], path: str
                 validate(item, schema["items"], root, f"{path}[{index}]")
 
     if isinstance(value, dict):
-        required = schema.get("required", [])
-        for key in required:
+        for key in schema.get("required", []):
             if key not in value:
                 raise ValidationError(f"{path}: missing required property {key!r}")
         props = schema.get("properties", {})
@@ -124,12 +208,35 @@ def validate(value: Any, schema: dict[str, Any], root: dict[str, Any], path: str
             validate(value, sub, root, path)
 
 
+def self_test() -> None:
+    schema = load(SCHEMA_PATH)
+    audit_schema(schema)
+    for probe in (
+        {"type": "number", "minimum": 0},
+        {"anyOf": [{"type": "string"}, {"type": "number"}]},
+    ):
+        try:
+            audit_schema(probe, "$self-test")
+        except ValidationError:
+            continue
+        raise ValidationError("self-test failed to reject unsupported validation keyword")
+
+
 def main(argv: list[str]) -> int:
+    if argv == ["--self-test"]:
+        try:
+            self_test()
+        except ValidationError as exc:
+            print(f"FAIL: {exc}", file=sys.stderr)
+            return 1
+        print("OK: IGM JSON Schema subset validator self-test passed")
+        return 0
     if len(argv) != 1:
-        print("usage: validate_json_schema.py PROFILE.json", file=sys.stderr)
+        print("usage: validate_json_schema.py PROFILE.json | --self-test", file=sys.stderr)
         return 2
     try:
         schema = load(SCHEMA_PATH)
+        audit_schema(schema)
         profile = load(Path(argv[0]))
         validate(profile, schema, schema)
     except ValidationError as exc:
