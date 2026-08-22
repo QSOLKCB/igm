@@ -12,6 +12,7 @@ on:
       - "tools/build_site_data.py"
       - "tools/validate_site.py"
       - "tools/validate_profile.py"
+      - "tools/validate_json_schema.py"
       - "tests/site-model.mjs"
       - ".github/workflows/pages.yml"
       - ".github/workflows/viz-ci.yml"
@@ -36,8 +37,11 @@ jobs:
         run: |
           python3 tools/validate_docs.py
           python3 tools/validate_profile.py --self-test
+          python3 tools/validate_json_schema.py profiles/igm-schematic-pentamer-v0.json
           python3 tools/validate_profile.py profiles/igm-schematic-pentamer-v0.json
           python3 tools/validate_site.py
+          node --check site/igm-model.mjs
+          node --check site/app.mjs
           node tests/site-model.mjs
       - name: Build deterministic static data
         run: python3 tools/build_site_data.py
