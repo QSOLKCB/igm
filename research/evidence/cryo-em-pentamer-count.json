@@ -1,0 +1,27 @@
+{
+  "schema": "IGM-EVIDENCE-INPUT-V1",
+  "adapter_id": "IGM-CRYO-EM-PARAMETER-ADAPTER-V1",
+  "observation_id": "chen-2022.full-length-human-igm.pentamer-cardinality",
+  "source_id": "structure.chen-2022-full-length-igm",
+  "support_statement": "full-length human IgM pentamer cryo-EM observations",
+  "target": {
+    "kind": "parameter",
+    "id": "assembly_sector_count"
+  },
+  "value": 5,
+  "unit": "count",
+  "derivation": "direct",
+  "uncertainty": {
+    "kind": "source-reported",
+    "unit": "count",
+    "notes": "This records pentamer cardinality as reported by the cited structural source. It does not quantify the unresolved flexible-state ensemble or imply exact C5 biological symmetry."
+  },
+  "snapshot": {
+    "mode": "reference-only",
+    "external_payload_sha256": null,
+    "external_payload_committed": false,
+    "redistribution_permission_verified": false,
+    "notes": "No publisher or EMDB payload is copied into the repository."
+  },
+  "notes": "Phase 4 ingestion fixture demonstrating claim-preserving use of an existing public structural-source registry entry."
+}
