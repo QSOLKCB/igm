@@ -1,0 +1,30 @@
+{
+  "schema": "IGM-SOURCE-SNAPSHOT-POLICY-V1",
+  "default_mode": "reference-only",
+  "records": [
+    {
+      "source_id": "structure.chen-2022-full-length-igm",
+      "mode": "reference-only",
+      "redistribution_permission_verified": false,
+      "external_payload_committed": false,
+      "external_payload_sha256": null,
+      "reason": "The registry grants discoverability but not a blanket right to redistribute publisher or structural payloads. Keep the source external until reuse terms are explicitly verified."
+    },
+    {
+      "source_id": "structure.emdb-13921",
+      "mode": "reference-only",
+      "redistribution_permission_verified": false,
+      "external_payload_committed": false,
+      "external_payload_sha256": null,
+      "reason": "The registry requires checking current EMDB/PDBe data terms before packaging source material. Reference-only is the fail-closed default."
+    },
+    {
+      "source_id": "structure.li-2020-igm-fc-j-pigr",
+      "mode": "reference-only",
+      "redistribution_permission_verified": false,
+      "external_payload_committed": false,
+      "external_payload_sha256": null,
+      "reason": "Current registry metadata does not itself establish redistribution permission for the article or structural payload."
+    }
+  ]
+}
