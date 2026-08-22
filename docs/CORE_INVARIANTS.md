@@ -72,6 +72,34 @@ When biological evidence is absent or ambiguous, preserve `unknown` or an explic
 
 No passing test, accepted run, validation receipt, residual report, benchmark or reproducibility record may be described as diagnosis, prognosis, treatment evidence, patient monitoring or clinical validation unless a separate appropriately governed research program has actually established that claim.
 
+## INV-MATH-002 — A Multidimensional Array Is Not Automatically a Tensor
+
+A convenient multi-indexed array used for computation or rendering is not automatically a mathematical tensor. IGM may call an object a tensor only when its transformation semantics or another mathematically valid tensor definition is explicitly declared.
+
+The Phase-2 pairwise-distance heatmap is therefore labelled a **numerical array, not a declared tensor**.
+
+## INV-MATH-003 — Coordinate Presentation Must Not Alter Coordinate-Invariant Observables
+
+Changes of presentation coordinates may alter displayed coordinates while leaving declared coordinate-invariant observables unchanged. For the Phase-2 schematic, rigid rotation and translation must preserve pairwise Euclidean distances within the declared numerical tolerance.
+
+A failure of this invariant is a computational defect, not biological evidence.
+
+## INV-GRAPH-001 — Graph Representation Must Match Declared Relationship Semantics
+
+Graph direction, weights, multiplicity, bipartite partitions, hyperedges and relationship classes must be justified by the model/profile semantics. A renderer must not invent relationship meaning because a graph type is visually convenient.
+
+## INV-GRAPH-002 — Topology Is Measured or Sourced, Never Assumed
+
+Topological interpretations such as scale-free, small-world, hub, motif, centrality or community structure are hypotheses or measured computational observables. They must not be assumed simply because the subject is biological.
+
+## INV-VIZ-001 — Visualization Layout Must Not Alter Model Semantics
+
+Assembly, array, graph, fabric, vortex-inspired, camera, filtering and layout controls are presentation state. Switching them must not mutate canonical model identity, profile claims or scientific semantics.
+
+## INV-VIZ-002 — Visual Proximity Does Not Imply Biological Proximity
+
+Objects placed near each other on screen, adjacent fabric rows, nearby graph nodes, or visually clustered marks are not thereby biologically close or interacting. Such interpretation requires explicit model semantics and appropriate evidence.
+
 ## Change control
 
 Changes that weaken these invariants require an explicit major governance review and must not be merged as routine implementation changes.
