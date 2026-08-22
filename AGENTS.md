@@ -36,6 +36,14 @@ If code, documentation, a model profile, an automated report or a proposed claim
 
 See `docs/CORE_INVARIANTS.md` and `governance/policy.json`.
 
+## Runtime adjacency invariant
+
+**INV-RUNTIME-001: Execution Adjacency Does Not Imply Biological Adjacency.**
+
+Scheduler graphs, CRT traversal order, memory adjacency, SIMD/warp lanes, chunks, workers, and device assignments are computational metadata only. They must never be promoted into molecular contact, physical proximity, biological interaction, causal influence, or another model relationship without an explicit separately sourced model/profile mapping.
+
+Keep model/biological graphs, execution graphs, provenance graphs, visualization graphs, and tensor-factor graphs separately named.
+
 ## Mandatory reading before changes
 
 Read:
@@ -49,6 +57,13 @@ Read:
 - `governance/policy.json`
 
 before changing model semantics, data handling, medical language, or validation status.
+
+For runtime scheduling, memory-layout, campaign, or accelerator changes also read:
+
+- `docs/RUST_RUNTIME.md`
+- `docs/PENTA_CRT_CPU.md`
+- `docs/EXECUTION_CAMPAIGNS.md`
+- `docs/RUNTIME_LINEAGE.md`
 
 ## Prohibited claims
 
@@ -84,6 +99,18 @@ If a proposed task requires human participants or their data, stop and identify 
 `tools/validate_profile.py` is the dependency-free semantic pre-execution gate for cross-field requirements that portable JSON Schema cannot express directly, including uniqueness by component `id`.
 
 Future runtimes, Pages tools, and accelerator paths must reject a profile that fails either structural/schema validation or the semantic pre-execution gate. Do not bypass the validator because a renderer or kernel could otherwise consume the data.
+
+## Execution and campaign semantics
+
+- `IGM-EXEC-GRAPH-C5-K2-C3-V1` is a scheduler graph only.
+- The 30 meaningful execution lanes and two padding lanes are runtime layout metadata, not biological state counts.
+- Padding lanes must remain inactive, non-semantic, and excluded from scientific/model counts.
+- Memory budgets must be validated before allocation and execution.
+- Large campaigns must use deterministic bounded chunking rather than unbounded resident allocation.
+- Correctness identity must remain separate from benchmark/timing identity.
+- Worker count, chunk count, and memory budget may affect the manifest/benchmark but must not silently alter a worker/chunk-independent correctness result for the same admitted numerical profile and conformation slice.
+- Rejected campaigns should be preserved with their failure reason and must not be relabelled as accepted evidence.
+- Environment receipts must omit hostname, username, raw GPU UUIDs, serial numbers, MAC addresses, and similar machine identifiers by default.
 
 ## Validation
 
@@ -134,6 +161,12 @@ PRs must pass:
 ```bash
 python3 tools/validate_docs.py
 python3 tools/validate_profile.py --self-test
+```
+
+Phase 3C campaign changes must additionally exercise and validate an accepted campaign directory with:
+
+```bash
+python3 tools/validate_campaign.py CAMPAIGN_DIR
 ```
 
 until broader implementation CI replaces or extends these gates.
