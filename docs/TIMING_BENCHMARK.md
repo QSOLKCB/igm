@@ -58,7 +58,7 @@ clinical_validity_claimed = false
 validation_level = V0
 ```
 
-The numeric `observed_speedup_ratio` is therefore a local measurement, not a project-wide claim.
+The numeric `observed_speedup_ratio` is therefore a local measurement, not a project-wide claim. This report does not itself authorize a speedup claim.
 
 ## Running it
 
