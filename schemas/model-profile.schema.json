@@ -103,7 +103,9 @@
           "derivation": {
             "enum": ["direct", "transformed", "calibrated", "inferred", "assumed", "unknown"]
           },
-          "uncertainty": {},
+          "uncertainty": {
+            "$ref": "#/$defs/evidenceUncertainty"
+          },
           "lower_bound": {
             "type": ["number", "integer", "null"]
           },
@@ -147,6 +149,19 @@
                   "minLength": 1
                 }
               }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "enum": ["observed", "source-derived", "calibrated"]
+                }
+              },
+              "required": ["status"]
+            },
+            "then": {
+              "required": ["uncertainty"]
             }
           },
           {
@@ -280,6 +295,22 @@
         "assumed",
         "unknown"
       ]
+    },
+    "evidenceUncertainty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "enum": ["unknown", "interval", "standard-deviation", "confidence-interval", "source-reported"]
+        },
+        "lower": {"type": ["number", "integer", "null"]},
+        "upper": {"type": ["number", "integer", "null"]},
+        "value": {"type": ["number", "integer", "null"]},
+        "level": {"type": ["number", "integer", "null"]},
+        "unit": {"type": ["string", "null"]},
+        "notes": {"type": "string"}
+      }
     }
   }
 }
