@@ -1,0 +1,172 @@
+name: IGM Phase 4 evidence adapter checks
+
+on:
+  push:
+    branches:
+      - main
+      - "agent/**"
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "runtime/rust/src/lib_v5.rs"
+      - "runtime/rust/src/phase4.rs"
+      - "runtime/rust/src/evidence_main.rs"
+      - "research/sources.json"
+      - "research/source-snapshot-policy.json"
+      - "research/v0-implementation-constants.json"
+      - "research/evidence/**"
+      - "schemas/source-registry.schema.json"
+      - "schemas/evidence-input.schema.json"
+      - "schemas/evidence-bundle.schema.json"
+      - "schemas/source-snapshot-policy.schema.json"
+      - "schemas/model-profile.schema.json"
+      - "tools/validate_sources.py"
+      - "tools/validate_phase4.py"
+      - "tools/validate_json_schema.py"
+      - "tools/validate_profile.py"
+      - "docs/EVIDENCE_ADAPTERS.md"
+      - "docs/PRE_PHASE5_READINESS.md"
+      - "ROADMAP.md"
+      - "AGENTS.md"
+      - ".github/workflows/phase4-evidence.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "runtime/rust/src/lib_v5.rs"
+      - "runtime/rust/src/phase4.rs"
+      - "runtime/rust/src/evidence_main.rs"
+      - "research/sources.json"
+      - "research/source-snapshot-policy.json"
+      - "research/v0-implementation-constants.json"
+      - "research/evidence/**"
+      - "schemas/source-registry.schema.json"
+      - "schemas/evidence-input.schema.json"
+      - "schemas/evidence-bundle.schema.json"
+      - "schemas/source-snapshot-policy.schema.json"
+      - "schemas/model-profile.schema.json"
+      - "tools/validate_sources.py"
+      - "tools/validate_phase4.py"
+      - "tools/validate_json_schema.py"
+      - "tools/validate_profile.py"
+      - "docs/EVIDENCE_ADAPTERS.md"
+      - "docs/PRE_PHASE5_READINESS.md"
+      - "ROADMAP.md"
+      - "AGENTS.md"
+      - ".github/workflows/phase4-evidence.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  evidence-adapters:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Toolchain identity
+        run: |
+          rustc --version
+          cargo --version
+          python3 --version
+
+      - name: Phase 4 source and readiness gates
+        run: |
+          python3 -m json.tool schemas/source-registry.schema.json >/dev/null
+          python3 -m json.tool schemas/evidence-input.schema.json >/dev/null
+          python3 -m json.tool schemas/evidence-bundle.schema.json >/dev/null
+          python3 -m json.tool schemas/source-snapshot-policy.schema.json >/dev/null
+          python3 -m py_compile tools/validate_sources.py tools/validate_phase4.py
+          python3 tools/validate_sources.py --self-test
+          python3 tools/validate_sources.py
+          python3 tools/validate_phase4.py
+          python3 tools/validate_json_schema.py --self-test
+          python3 tools/validate_json_schema.py profiles/igm-schematic-pentamer-v0.json
+          python3 tools/validate_profile.py profiles/igm-schematic-pentamer-v0.json
+
+      - name: Rust evidence adapter tests
+        run: cargo test --locked --all-targets
+
+      - name: Release build
+        run: cargo build --locked --release
+
+      - name: Structural source registry report
+        run: |
+          ./target/release/igm-evidence registry > /tmp/igm-source-registry-report.json
+          python3 - <<'PY'
+          import json
+          report = json.load(open('/tmp/igm-source-registry-report.json', encoding='utf-8'))
+          assert report['schema'] == 'IGM-PHASE4-SOURCE-REGISTRY-REPORT-V1'
+          assert report['source_adapter_contract'] == 'IGM-SOURCE-ADAPTER-V1'
+          assert report['structural_source_count'] >= 3
+          ids = report['structural_identifier_counts']
+          assert ids['doi'] >= 1 and ids['pdb'] >= 1 and ids['emdb'] >= 1
+          assert report['validation_level_promoted_by_adapter'] is False
+          assert report['biological_validity_claimed'] is False
+          assert report['clinical_validity_claimed'] is False
+          print('OK: structural source registry preserves DOI/PDB/EMDB identities')
+          PY
+
+      - name: Cryo-EM parameter adapter
+        run: |
+          ./target/release/igm-evidence adapt research/evidence/cryo-em-pentamer-count.json > /tmp/igm-cryo-candidate.json
+          python3 - <<'PY'
+          import json
+          c = json.load(open('/tmp/igm-cryo-candidate.json', encoding='utf-8'))
+          assert c['schema'] == 'IGM-EVIDENCE-CANDIDATE-V1'
+          assert c['source_adapter_contract'] == 'IGM-SOURCE-ADAPTER-V1'
+          assert c['adapter_id'] == 'IGM-CRYO-EM-PARAMETER-ADAPTER-V1'
+          assert c['source_id'] == 'structure.chen-2022-full-length-igm'
+          assert c['target'] == {'kind': 'parameter', 'id': 'assembly_sector_count'}
+          assert c['value'] == 5 and c['unit'] == 'count'
+          assert c['status'] == 'observed' and c['derivation'] == 'direct'
+          assert c['uncertainty']['kind'] == 'source-reported'
+          assert c['snapshot']['mode'] == 'reference-only'
+          assert c['snapshot']['external_payload_committed'] is False
+          assert c['claim_strengthening_detected'] is False
+          assert c['validation_level_promoted_by_adapter'] is False
+          assert c['biological_validity_claimed'] is False
+          assert c['clinical_validity_claimed'] is False
+          assert len(c['candidate_sha256']) == 64
+          print('OK: cryo-EM adapter emits bounded provenance-rich candidate without claim promotion')
+          PY
+
+      - name: Conflict/concordance bundle preserves separate candidates
+        run: |
+          ./target/release/igm-evidence bundle \
+            research/evidence/cryo-em-pentamer-count.json \
+            research/evidence/cryo-em-pentamer-count.json \
+            > /tmp/igm-evidence-bundle.json
+          python3 - <<'PY'
+          import json
+          b = json.load(open('/tmp/igm-evidence-bundle.json', encoding='utf-8'))
+          assert b['schema'] == 'IGM-EVIDENCE-BUNDLE-V1'
+          assert b['bundle_contract'] == 'IGM-PHASE4-EVIDENCE-BUNDLE-V1'
+          assert b['state'] == 'concordant'
+          assert len(b['candidates']) == 2
+          assert b['resolved_value'] is None
+          assert b['reconciliation_performed'] is False
+          assert b['claim_strengthening_detected'] is False
+          assert b['validation_level_promoted_by_adapter'] is False
+          print('OK: multi-source bundle preserves candidates without forced reconciliation')
+          PY
+
+      - name: Unsupported source claim is rejected
+        run: |
+          python3 - <<'PY'
+          import json
+          src = 'research/evidence/cryo-em-pentamer-count.json'
+          data = json.load(open(src, encoding='utf-8'))
+          data['support_statement'] = 'this stronger claim was never registered'
+          with open('/tmp/igm-bad-evidence.json', 'w', encoding='utf-8') as f:
+              json.dump(data, f, indent=2)
+              f.write('\n')
+          PY
+          if ./target/release/igm-evidence adapt /tmp/igm-bad-evidence.json; then
+            echo 'expected exact support-statement gate to reject stronger unregistered claim' >&2
+            exit 1
+          fi
+          echo 'OK: source ingestion rejects unregistered stronger claim'
