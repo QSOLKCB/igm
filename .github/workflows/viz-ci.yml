@@ -12,6 +12,7 @@ on:
       - "tools/build_site_data.py"
       - "tools/validate_site.py"
       - "tools/validate_profile.py"
+      - "tools/validate_json_schema.py"
       - "governance/**"
       - "research/**"
       - "docs/**"
@@ -28,6 +29,7 @@ on:
       - "tools/build_site_data.py"
       - "tools/validate_site.py"
       - "tools/validate_profile.py"
+      - "tools/validate_json_schema.py"
       - "governance/**"
       - "research/**"
       - "docs/**"
@@ -48,10 +50,16 @@ jobs:
         run: |
           python3 tools/validate_docs.py
           python3 tools/validate_profile.py --self-test
-      - name: Validate V0 profile
-        run: python3 tools/validate_profile.py profiles/igm-schematic-pentamer-v0.json
+      - name: Validate V0 profile schema and semantics
+        run: |
+          python3 tools/validate_json_schema.py profiles/igm-schematic-pentamer-v0.json
+          python3 tools/validate_profile.py profiles/igm-schematic-pentamer-v0.json
       - name: Validate Pages source boundary
         run: python3 tools/validate_site.py
+      - name: JavaScript syntax
+        run: |
+          node --check site/igm-model.mjs
+          node --check site/app.mjs
       - name: Deterministic browser model tests
         run: node tests/site-model.mjs
       - name: Build deterministic site data
