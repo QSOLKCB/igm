@@ -1,0 +1,24 @@
+[package]
+name = "igm-runtime"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Deterministic non-clinical structural research runtime for QSOLKCB/igm"
+repository = "https://github.com/QSOLKCB/igm"
+
+[lib]
+path = "runtime/rust/src/lib_v2.rs"
+
+[[bin]]
+name = "igm-runtime"
+path = "runtime/rust/src/main.rs"
+
+[dependencies]
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.151"
+sha2 = "=0.10.9"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+panic = "abort"
