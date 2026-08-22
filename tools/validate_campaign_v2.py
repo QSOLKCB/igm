@@ -325,6 +325,9 @@ def validate_environment(e: dict[str, Any]) -> None:
     require(set(e) == ENVIRONMENT_KEYS, f"environment contains missing/extra fields: {sorted(set(e) ^ ENVIRONMENT_KEYS)}")
     require(e.get("schema") == "IGM-CAMPAIGN-ENVIRONMENT-V1", "bad environment schema")
     require(isinstance(e.get("os_family"), str) and e["os_family"] and isinstance(e.get("architecture"), str) and e["architecture"], "environment platform fields missing")
+    for key in ("rustc_version", "cargo_version"):
+        value = e.get(key)
+        require(value is None or (isinstance(value, str) and bool(value)), f"environment {key} must be null or a non-empty string")
     require(integer(e.get("available_parallelism")) and e["available_parallelism"] >= 1, "environment parallelism invalid")
     require(e.get("hostname_included") is False and e.get("username_included") is False and e.get("raw_hardware_identifiers_included") is False, "raw environment identifiers forbidden")
 
