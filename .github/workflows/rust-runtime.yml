@@ -14,11 +14,13 @@ on:
       - "tools/validate_docs.py"
       - "tools/validate_profile.py"
       - "tools/validate_json_schema.py"
+      - "tools/validate_campaign.py"
       - "tests/site-model.mjs"
       - "site/igm-model.mjs"
       - "docs/RUST_RUNTIME.md"
       - "docs/RUNTIME_LINEAGE.md"
       - "docs/PENTA_CRT_CPU.md"
+      - "docs/EXECUTION_CAMPAIGNS.md"
       - "ROADMAP.md"
       - ".github/workflows/rust-runtime.yml"
   pull_request:
@@ -33,11 +35,13 @@ on:
       - "tools/validate_docs.py"
       - "tools/validate_profile.py"
       - "tools/validate_json_schema.py"
+      - "tools/validate_campaign.py"
       - "tests/site-model.mjs"
       - "site/igm-model.mjs"
       - "docs/RUST_RUNTIME.md"
       - "docs/RUNTIME_LINEAGE.md"
       - "docs/PENTA_CRT_CPU.md"
+      - "docs/EXECUTION_CAMPAIGNS.md"
       - "ROADMAP.md"
       - ".github/workflows/rust-runtime.yml"
 
@@ -62,6 +66,8 @@ jobs:
           python3 tools/validate_json_schema.py profiles/igm-schematic-pentamer-v0.json
           python3 tools/validate_profile.py profiles/igm-schematic-pentamer-v0.json
           python3 -m json.tool runtime/profiles/igm-penta-crt-cpu-v1.json >/dev/null
+          python3 -m json.tool schemas/campaign-manifest.schema.json >/dev/null
+          python3 -m json.tool schemas/correctness-receipt.schema.json >/dev/null
       - name: Preserve browser reference
         run: node tests/site-model.mjs
       - name: Rust tests
@@ -163,4 +169,64 @@ jobs:
           assert one['performance_claim'] is False
           assert one['biological_validity_claimed'] is False
           print('OK: PENTA-CRT optimized result identity is worker independent')
+          PY
+      - name: Phase 3C execution graph and padded layout
+        run: |
+          ./target/release/igm-campaign graph > /tmp/igm-exec-graph.json
+          ./target/release/igm-campaign layout > /tmp/igm-layout.json
+          ./target/release/igm-campaign plan --start 100 --count 31 --budget-bytes 1024 > /tmp/igm-plan.json
+          python3 - <<'PY'
+          import json
+          graph = json.load(open('/tmp/igm-exec-graph.json', encoding='utf-8'))
+          layout = json.load(open('/tmp/igm-layout.json', encoding='utf-8'))
+          plan = json.load(open('/tmp/igm-plan.json', encoding='utf-8'))
+          assert graph['node_count'] == 30
+          assert graph['degree'] == 5
+          assert graph['edge_count_undirected'] == 75
+          assert graph['biological_adjacency_claimed'] is False
+          assert layout['warp_width'] == 32
+          assert layout['meaningful_lanes'] == 30
+          assert layout['padding_lanes'] == 2
+          assert layout['scientific_count_includes_padding'] is False
+          assert layout['cell_alignment_bytes'] == 128
+          assert plan['memory']['chunk_count'] > 1
+          assert plan['biological_validity_claimed'] is False
+          print('OK: Phase 3C graph/layout/memory planning contract')
+          PY
+      - name: Phase 3C accepted campaign and artifact validation
+        run: |
+          rm -rf /tmp/igm-campaign-small /tmp/igm-campaign-wide
+          ./target/release/igm-campaign run --start 100 --count 31 --workers 1 --budget-bytes 1024 --verify-samples 17 --out /tmp/igm-campaign-small > /tmp/igm-campaign-small.json
+          ./target/release/igm-campaign run --start 100 --count 31 --workers 7 --budget-bytes 65536 --verify-samples 17 --out /tmp/igm-campaign-wide > /tmp/igm-campaign-wide.json
+          python3 tools/validate_campaign.py /tmp/igm-campaign-small
+          python3 tools/validate_campaign.py /tmp/igm-campaign-wide
+          python3 - <<'PY'
+          import json
+          one = json.load(open('/tmp/igm-campaign-small/correctness-receipt.json', encoding='utf-8'))
+          seven = json.load(open('/tmp/igm-campaign-wide/correctness-receipt.json', encoding='utf-8'))
+          m1 = json.load(open('/tmp/igm-campaign-small/memory-plan.json', encoding='utf-8'))
+          m7 = json.load(open('/tmp/igm-campaign-wide/memory-plan.json', encoding='utf-8'))
+          assert one['result_sha256'] == seven['result_sha256']
+          assert one['diagnostic_xor_fnv1a64'] == seven['diagnostic_xor_fnv1a64']
+          assert one['result_identity_worker_independent'] is True
+          assert one['result_identity_chunk_independent'] is True
+          assert m1['chunk_count'] != m7['chunk_count']
+          assert one['biological_validity_claimed'] is False
+          print('OK: Phase 3C correctness identity survives worker/chunk changes')
+          PY
+      - name: Phase 3C rejected campaign is preserved
+        run: |
+          rm -rf /tmp/igm-campaign-rejected
+          if ./target/release/igm-campaign run --start 100 --count 31 --workers 2 --budget-bytes 1 --verify-samples 17 --out /tmp/igm-campaign-rejected; then
+            echo 'expected bounded memory rejection' >&2
+            exit 1
+          fi
+          python3 tools/validate_campaign.py /tmp/igm-campaign-rejected
+          python3 - <<'PY'
+          import json
+          rejected = json.load(open('/tmp/igm-campaign-rejected/rejected.json', encoding='utf-8'))
+          assert rejected['preserved'] is True
+          assert rejected['biological_validity_claimed'] is False
+          assert rejected['stage'] == 'campaign-execution'
+          print('OK: Phase 3C rejected-run preservation')
           PY
