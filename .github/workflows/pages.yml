@@ -7,6 +7,7 @@ on:
     paths:
       - "site/**"
       - "profiles/**"
+      - "schemas/**"
       - "research/**"
       - "governance/**"
       - "tools/build_site_data.py"
@@ -37,6 +38,7 @@ jobs:
         run: |
           python3 tools/validate_docs.py
           python3 tools/validate_profile.py --self-test
+          python3 tools/validate_json_schema.py --self-test
           python3 tools/validate_json_schema.py profiles/igm-schematic-pentamer-v0.json
           python3 tools/validate_profile.py profiles/igm-schematic-pentamer-v0.json
           python3 tools/validate_site.py
