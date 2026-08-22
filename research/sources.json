@@ -11,6 +11,10 @@
       "doi": "10.1038/s41467-022-34090-2",
       "url": "https://www.nature.com/articles/s41467-022-34090-2",
       "authority": "structural-source",
+      "access": {
+        "status": "publicly-accessible",
+        "redistribution": "Registry entry grants no redistribution right. Verify the article and figure licence displayed by the publisher before packaging source material or derivatives."
+      },
       "supports": [
         "full-length human IgM pentamer cryo-EM observations",
         "asymmetric rigid core involving Cmu3/Cmu4 regions and J-chain",
@@ -32,6 +36,10 @@
       "emdb": "EMD-13921",
       "url": "https://www.ebi.ac.uk/emdb/EMD-13921",
       "authority": "structural-source",
+      "access": {
+        "status": "publicly-accessible",
+        "redistribution": "Use the current EMDB/PDBe data terms and cite the accession. This registry records discoverability, not a blanket redistribution licence."
+      },
       "supports": [
         "public cryo-EM map of full-length human IgM pentamer",
         "future source-adapter development and external structural comparison"
@@ -52,6 +60,10 @@
       "pdb": "6KXS",
       "url": "https://www.ebi.ac.uk/emdb/EMD-0782",
       "authority": "structural-source",
+      "access": {
+        "status": "publicly-accessible",
+        "redistribution": "Use current PDB/EMDB and publisher terms for any redistributed structural or article material; this registry does not itself grant reuse rights."
+      },
       "supports": [
         "human IgM-Fc/J-chain structural observations",
         "public structural reference for core model adapters"
@@ -68,6 +80,10 @@
       "year": 2020,
       "url": "https://www.ariaintegrative.com/2020/10/01/understanding-antibodies-igm/",
       "authority": "non-authoritative-background",
+      "access": {
+        "status": "publicly-accessible",
+        "redistribution": "Link-only by default. Verify the site's copyright and reuse terms before reproducing text or images."
+      },
       "supports": [
         "general educational context only"
       ],
@@ -76,6 +92,102 @@
         "medical advice",
         "clinical claims",
         "model validation"
+      ]
+    },
+    {
+      "id": "math.lim-2021-tensors-computations",
+      "class": "mathematical-method-reference",
+      "title": "Tensors in computations",
+      "authors": ["Lek-Heng Lim"],
+      "year": 2021,
+      "doi": "10.1017/S0962492921000076",
+      "url": "https://arxiv.org/abs/2106.08090",
+      "authority": "mathematical-method-reference",
+      "access": {
+        "status": "publicly-accessible",
+        "redistribution": "Use the arXiv/publisher licence terms for source material. IGM uses the mathematical concepts and writes independent code/documentation."
+      },
+      "supports": [
+        "tensor transformation semantics",
+        "equivariance, multilinearity and separability as computational ideas",
+        "tensor-network interpretation using graph-structured index relationships"
+      ],
+      "does_not_support": [
+        "IgM biological ontology",
+        "IgM parameter values"
+      ]
+    },
+    {
+      "id": "graph.pagliarini-chicco-2026-nine-tips",
+      "class": "mathematical-method-reference",
+      "title": "Nine quick tips for graph theory in systems biology",
+      "authors": ["Roberto Pagliarini", "Davide Chicco"],
+      "year": 2026,
+      "doi": "10.1007/s44354-026-00032-3",
+      "url": "https://doi.org/10.1007/s44354-026-00032-3",
+      "authority": "graph-method-and-best-practice-reference",
+      "access": {
+        "status": "open-access",
+        "redistribution": "Article states CC BY 4.0; retain attribution, licence link and change notices when reusing covered material."
+      },
+      "supports": [
+        "choose graph representation to match biological information",
+        "treat scale-free topology as a hypothesis to test rather than assume",
+        "visualization layout can influence interpretation",
+        "seek wet-lab biological validation after computational results"
+      ],
+      "does_not_support": [
+        "a particular IgM graph topology",
+        "automatic biological interpretation of graph metrics"
+      ]
+    },
+    {
+      "id": "graph.koutrouli-2020-biological-network-era",
+      "class": "mathematical-method-reference",
+      "title": "A Guide to Conquer the Biological Network Era Using Graph Theory",
+      "authors": ["Mikaela Koutrouli", "Evangelos Karatzas", "David Paez-Espino", "Georgios A. Pavlopoulos"],
+      "year": 2020,
+      "doi": "10.3389/fbioe.2020.00034",
+      "url": "https://doi.org/10.3389/fbioe.2020.00034",
+      "authority": "graph-method-and-visualization-reference",
+      "access": {
+        "status": "open-access",
+        "redistribution": "Use the article's stated open-access licence and attribution requirements for any reused material. IGM implementation remains independent."
+      },
+      "supports": [
+        "typed graph representations including directed, weighted, bipartite, multi-edge and hypergraph forms",
+        "adjacency, sparse and list representations",
+        "graph metrics, layouts and visualization choices"
+      ],
+      "does_not_support": [
+        "a particular IgM graph topology",
+        "clinical interpretation of IGM outputs"
+      ]
+    },
+    {
+      "id": "visualization.biofabric-longabaugh-2012",
+      "class": "visualization-method-reference",
+      "title": "Combing the hairball with BioFabric: a new approach for visualization of large networks",
+      "authors": ["William J. R. Longabaugh"],
+      "year": 2012,
+      "doi": "10.1186/1471-2105-13-275",
+      "url": "https://biofabric.systemsbiology.net/",
+      "authority": "visualization-method-reference-only",
+      "access": {
+        "status": "publicly-accessible",
+        "redistribution": "BioFabric software is LGPL according to its official site. IGM will not copy BioFabric source code; it will implement an original Apache-2.0 fabric-style renderer from published concepts and IGM requirements."
+      },
+      "supports": [
+        "horizontal-row node representation",
+        "vertical-column edge representation",
+        "clear multi-edge visibility",
+        "semantic grouping of links",
+        "anti-hairball visualization motivation"
+      ],
+      "does_not_support": [
+        "IgM biology",
+        "IgM structural parameters",
+        "permission to relicense BioFabric source code as Apache-2.0"
       ]
     },
     {
