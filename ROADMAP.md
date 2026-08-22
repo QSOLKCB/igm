@@ -131,9 +131,9 @@ Rust/Pages agreement establishes implementation agreement for the schematic fixt
 
 ## Phase 3B — PENTA-CRT CPU optimization profile
 
-**Target: PR #4.**
+**Target: PR #4, timing-benchmark follow-up in PR #8.**
 
-Status: **complete and merged in PR #4**.
+Status: **complete and merged in PR #4; dedicated timing benchmark added in PR #8**.
 
 Turn the PR3 reference machinery into a fast conformational execution engine while keeping every optimization independently testable against the f64 reference.
 
@@ -170,7 +170,21 @@ These are computational fixture states, not asserted biological conformations.
 - [x] Hoist profile constants, deterministic trig projection, and lookup construction out of the conformation loop.
 - [x] Remove per-conformation heap allocation from the optimization hot loop.
 - [x] Add fixed-size vectorization-friendly SoA geometry representation.
-- [ ] Add a dedicated scalar/reference-vs-optimized timing benchmark before making any speedup claim.
+- [x] Add a dedicated scalar/reference-vs-optimized timing benchmark before making any speedup claim.
+
+Timing-benchmark contract:
+
+```text
+IGM-PHASE3B-SCALAR-VS-OPTIMIZED-BENCHMARK-V1
+scalar deterministic brute-force reference
+actual one-worker PENTA-CRT optimized runtime
+warmups + alternating measurement order + median timing
+Phase 3B residual gate required before timing
+performance_claim = false
+speedup_claimed = false
+```
+
+See `docs/TIMING_BENCHMARK.md`.
 
 ### Structured interaction reuse
 
@@ -278,7 +292,19 @@ An accepted campaign must preserve the profile/algorithm identities, pass the Ph
 
 ---
 
+## Pre-Phase 5 readiness audit
+
+Status: **BLOCKED_ON_PHASE4**.
+
+After PR #8 there are no remaining unchecked Phase 1-3 implementation items. The runtime/performance foundation is complete enough to stop being the reason Phase 5 is delayed.
+
+Phase 4 is still a substantive evidence/provenance architecture phase and must not be skipped. See `docs/PRE_PHASE5_READINESS.md`.
+
+---
+
 ## Phase 4 — Replaceable evidence adapters
+
+Status: **next required phase; hard blocker for Phase 5**.
 
 - [ ] Define source-adapter interface.
 - [ ] Maintain public structural-source registry with DOI/PDB/EMDB identifiers.
@@ -298,6 +324,8 @@ Source ingestion must not silently convert observations into stronger claims tha
 ---
 
 ## Phase 5 — Tensor, graph, and ensemble computational representations
+
+**Entry condition: Phase 4 gate implemented and pre-Phase 5 audit updated from `BLOCKED_ON_PHASE4`.**
 
 - [ ] Define explicit numerical-array projections of model state.
 - [ ] Define true tensor types only where transformation semantics are declared.
