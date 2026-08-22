@@ -9,6 +9,7 @@ use igm_runtime::{
     bounded_rotate_z, load_profile, partition_ranges, run_structural_fixture, ExecutionAddress,
     RunConfig, SquaredDistanceGate, Vec3, EXECUTION_CELL_STATES, INV_BIO_001, MAX_WORKERS,
 };
+use std::fmt::Display;
 use std::path::Path;
 
 const DEFAULT_SEED: u64 = 0x4947_4d50_524f_5037; // "IGMPROP7"
@@ -84,8 +85,24 @@ fn fixture_path() -> &'static Path {
     Path::new("profiles/igm-schematic-pentamer-v0.json")
 }
 
+fn fuzz_ok<T, E: Display>(
+    result: Result<T, E>,
+    seed: u64,
+    case: usize,
+    property: &str,
+    operation: &str,
+) -> T {
+    result.unwrap_or_else(|error| {
+        panic!(
+            "property={property} seed=0x{seed:016x} case={case} operation={operation}: {error}"
+        )
+    })
+}
+
 #[test]
 fn property_crt_addressing_is_total_only_on_declared_domains() {
+    const PROPERTY: &str = "crt-addressing";
+    let seed = parse_seed();
     let cases = case_count();
     let mut rng = rng_for(0x4352_5433_3041_4444); // CRT30ADD
 
@@ -93,12 +110,31 @@ fn property_crt_addressing_is_total_only_on_declared_domains() {
         let sequence = rng.bounded_u64(256) as u8;
         match ExecutionAddress::from_sequence(sequence) {
             Ok(address) => {
-                assert!(sequence < EXECUTION_CELL_STATES, "seed={} case={case}", parse_seed());
-                assert_eq!(address.sequence().unwrap(), sequence, "seed={} case={case}", parse_seed());
-                let storage = address.storage_index().unwrap();
-                assert!(storage < EXECUTION_CELL_STATES, "seed={} case={case}", parse_seed());
+                assert!(
+                    sequence < EXECUTION_CELL_STATES,
+                    "property={PROPERTY} seed=0x{seed:016x} case={case}: out-of-domain sequence accepted"
+                );
+                let round_trip = fuzz_ok(address.sequence(), seed, case, PROPERTY, "address.sequence");
+                assert_eq!(
+                    round_trip, sequence,
+                    "property={PROPERTY} seed=0x{seed:016x} case={case}: sequence round trip mismatch"
+                );
+                let storage = fuzz_ok(
+                    address.storage_index(),
+                    seed,
+                    case,
+                    PROPERTY,
+                    "address.storage_index",
+                );
+                assert!(
+                    storage < EXECUTION_CELL_STATES,
+                    "property={PROPERTY} seed=0x{seed:016x} case={case}: storage index out of domain"
+                );
             }
-            Err(_) => assert!(sequence >= EXECUTION_CELL_STATES, "seed={} case={case}", parse_seed()),
+            Err(_) => assert!(
+                sequence >= EXECUTION_CELL_STATES,
+                "property={PROPERTY} seed=0x{seed:016x} case={case}: valid sequence rejected"
+            ),
         }
 
         let address = ExecutionAddress {
@@ -107,52 +143,137 @@ fn property_crt_addressing_is_total_only_on_declared_domains() {
             lane: rng.bounded_u64(6) as u8,
         };
         let valid = address.sector < 5 && address.arm < 2 && address.lane < 3;
-        match (address.sequence(), address.storage_index()) {
-            (Ok(seq), Ok(storage)) => {
-                assert!(valid, "seed={} case={case}", parse_seed());
-                assert_eq!(ExecutionAddress::from_sequence(seq).unwrap(), address, "seed={} case={case}", parse_seed());
-                assert!(storage < EXECUTION_CELL_STATES, "seed={} case={case}", parse_seed());
-            }
-            _ => assert!(!valid, "seed={} case={case}", parse_seed()),
+        let sequence_result = address.sequence();
+        let storage_result = address.storage_index();
+
+        if valid {
+            let seq = fuzz_ok(
+                sequence_result,
+                seed,
+                case,
+                PROPERTY,
+                "valid address.sequence",
+            );
+            let storage = fuzz_ok(
+                storage_result,
+                seed,
+                case,
+                PROPERTY,
+                "valid address.storage_index",
+            );
+            let reconstructed = fuzz_ok(
+                ExecutionAddress::from_sequence(seq),
+                seed,
+                case,
+                PROPERTY,
+                "ExecutionAddress::from_sequence(round_trip)",
+            );
+            assert_eq!(
+                reconstructed, address,
+                "property={PROPERTY} seed=0x{seed:016x} case={case}: address round trip mismatch"
+            );
+            assert!(
+                storage < EXECUTION_CELL_STATES,
+                "property={PROPERTY} seed=0x{seed:016x} case={case}: valid storage index out of domain"
+            );
+        } else {
+            assert!(
+                sequence_result.is_err(),
+                "property={PROPERTY} seed=0x{seed:016x} case={case}: sequence() accepted invalid address sector={} arm={} lane={}",
+                address.sector,
+                address.arm,
+                address.lane
+            );
+            assert!(
+                storage_result.is_err(),
+                "property={PROPERTY} seed=0x{seed:016x} case={case}: storage_index() accepted invalid address sector={} arm={} lane={}",
+                address.sector,
+                address.arm,
+                address.lane
+            );
         }
     }
 }
 
 #[test]
 fn property_partition_ranges_are_gap_free_bounded_and_balanced() {
+    const PROPERTY: &str = "partition-ranges";
+    let seed = parse_seed();
     let cases = case_count();
     let mut rng = rng_for(0x5041_5254_4954_494f); // PARTITIO
 
     for case in 0..cases {
         let items = 1 + rng.bounded_u64(100_000);
         let requested = 1 + rng.bounded_usize(MAX_WORKERS);
-        let ranges = partition_ranges(items, requested).unwrap();
+        let ranges = fuzz_ok(
+            partition_ranges(items, requested),
+            seed,
+            case,
+            PROPERTY,
+            "partition_ranges",
+        );
         let effective = requested.min(items as usize);
-        assert_eq!(ranges.len(), effective, "seed={} case={case}", parse_seed());
-        assert_eq!(ranges.first().unwrap().start, 0, "seed={} case={case}", parse_seed());
-        assert_eq!(ranges.last().unwrap().end, items, "seed={} case={case}", parse_seed());
+        assert_eq!(
+            ranges.len(), effective,
+            "property={PROPERTY} seed=0x{seed:016x} case={case}: effective worker count mismatch"
+        );
+        assert!(
+            !ranges.is_empty(),
+            "property={PROPERTY} seed=0x{seed:016x} case={case}: partition unexpectedly empty"
+        );
+        assert_eq!(
+            ranges[0].start, 0,
+            "property={PROPERTY} seed=0x{seed:016x} case={case}: first range does not start at zero"
+        );
+        assert_eq!(
+            ranges[ranges.len() - 1].end,
+            items,
+            "property={PROPERTY} seed=0x{seed:016x} case={case}: last range does not end at item count"
+        );
 
         let mut total = 0_u64;
         let mut min_len = u64::MAX;
         let mut max_len = 0_u64;
         for (worker, range) in ranges.iter().enumerate() {
-            assert_eq!(range.worker, worker, "seed={} case={case}", parse_seed());
-            assert!(range.length > 0, "seed={} case={case}", parse_seed());
-            assert_eq!(range.end - range.start, range.length, "seed={} case={case}", parse_seed());
+            assert_eq!(
+                range.worker, worker,
+                "property={PROPERTY} seed=0x{seed:016x} case={case}: worker ordinal mismatch"
+            );
+            assert!(
+                range.length > 0,
+                "property={PROPERTY} seed=0x{seed:016x} case={case}: zero-length range"
+            );
+            assert_eq!(
+                range.end - range.start,
+                range.length,
+                "property={PROPERTY} seed=0x{seed:016x} case={case}: range arithmetic mismatch"
+            );
             if worker > 0 {
-                assert_eq!(ranges[worker - 1].end, range.start, "seed={} case={case}", parse_seed());
+                assert_eq!(
+                    ranges[worker - 1].end,
+                    range.start,
+                    "property={PROPERTY} seed=0x{seed:016x} case={case}: partition gap/overlap"
+                );
             }
             total += range.length;
             min_len = min_len.min(range.length);
             max_len = max_len.max(range.length);
         }
-        assert_eq!(total, items, "seed={} case={case}", parse_seed());
-        assert!(max_len - min_len <= 1, "seed={} case={case}", parse_seed());
+        assert_eq!(
+            total, items,
+            "property={PROPERTY} seed=0x{seed:016x} case={case}: partition coverage mismatch"
+        );
+        assert!(
+            max_len - min_len <= 1,
+            "property={PROPERTY} seed=0x{seed:016x} case={case}: quotient/remainder balance violated"
+        );
     }
 }
 
 #[test]
 fn property_squared_distance_is_symmetric_and_translation_invariant() {
+    const PROPERTY: &str = "squared-distance";
+    let seed = parse_seed();
     let cases = case_count();
     let mut rng = rng_for(0x4449_5354_414e_4345); // DISTANCE
 
@@ -172,20 +293,51 @@ fn property_squared_distance_is_symmetric_and_translation_invariant() {
             rng.exact_binary_f64(16),
             rng.exact_binary_f64(16),
         );
-        let d_ab = a.checked_squared_distance(b).unwrap();
-        let d_ba = b.checked_squared_distance(a).unwrap();
-        assert_eq!(d_ab.to_bits(), d_ba.to_bits(), "seed={} case={case}", parse_seed());
-        assert!(d_ab >= 0.0 && d_ab.is_finite(), "seed={} case={case}", parse_seed());
+        let d_ab = fuzz_ok(
+            a.checked_squared_distance(b),
+            seed,
+            case,
+            PROPERTY,
+            "a.checked_squared_distance(b)",
+        );
+        let d_ba = fuzz_ok(
+            b.checked_squared_distance(a),
+            seed,
+            case,
+            PROPERTY,
+            "b.checked_squared_distance(a)",
+        );
+        assert_eq!(
+            d_ab.to_bits(),
+            d_ba.to_bits(),
+            "property={PROPERTY} seed=0x{seed:016x} case={case}: symmetry mismatch"
+        );
+        assert!(
+            d_ab >= 0.0 && d_ab.is_finite(),
+            "property={PROPERTY} seed=0x{seed:016x} case={case}: distance not finite/non-negative"
+        );
 
         let at = Vec3::new(a.x + t.x, a.y + t.y, a.z + t.z);
         let bt = Vec3::new(b.x + t.x, b.y + t.y, b.z + t.z);
-        let translated = at.checked_squared_distance(bt).unwrap();
-        assert_eq!(d_ab.to_bits(), translated.to_bits(), "seed={} case={case}", parse_seed());
+        let translated = fuzz_ok(
+            at.checked_squared_distance(bt),
+            seed,
+            case,
+            PROPERTY,
+            "translated checked_squared_distance",
+        );
+        assert_eq!(
+            d_ab.to_bits(),
+            translated.to_bits(),
+            "property={PROPERTY} seed=0x{seed:016x} case={case}: translation invariance mismatch"
+        );
     }
 }
 
 #[test]
 fn property_squared_distance_gate_matches_direct_predicate() {
+    const PROPERTY: &str = "squared-distance-gate";
+    let seed = parse_seed();
     let cases = case_count();
     let mut rng = rng_for(0x4449_5354_4741_5445); // DISTGATE
 
@@ -201,14 +353,32 @@ fn property_squared_distance_gate_matches_direct_predicate() {
             rng.exact_binary_f64(64),
         );
         let cutoff = (1 + rng.bounded_u64(512)) as f64 / 8.0;
-        let gate = SquaredDistanceGate::new(cutoff).unwrap();
-        let direct = a.checked_squared_distance(b).unwrap() < cutoff * cutoff;
-        assert_eq!(gate.below(a, b).unwrap(), direct, "seed={} case={case}", parse_seed());
+        let gate = fuzz_ok(
+            SquaredDistanceGate::new(cutoff),
+            seed,
+            case,
+            PROPERTY,
+            "SquaredDistanceGate::new",
+        );
+        let direct = fuzz_ok(
+            a.checked_squared_distance(b),
+            seed,
+            case,
+            PROPERTY,
+            "direct checked_squared_distance",
+        ) < cutoff * cutoff;
+        let gated = fuzz_ok(gate.below(a, b), seed, case, PROPERTY, "gate.below");
+        assert_eq!(
+            gated, direct,
+            "property={PROPERTY} seed=0x{seed:016x} case={case}: gate/direct predicate mismatch"
+        );
     }
 }
 
 #[test]
 fn property_bounded_rotation_preserves_z_and_radius_about_pivot() {
+    const PROPERTY: &str = "bounded-rotation";
+    let seed = parse_seed();
     let cases = case_count();
     let mut rng = rng_for(0x524f_5441_5445_5a31); // ROTATEZ1
 
@@ -224,45 +394,130 @@ fn property_bounded_rotation_preserves_z_and_radius_about_pivot() {
             rng.exact_binary_f64(8),
         );
         let angle = (rng.bounded_u64(3001) as i64 - 1500) as f64 / 1000.0;
-        let rotated = bounded_rotate_z(point, pivot, angle, -1.5, 1.5).unwrap();
-        assert_eq!(rotated.z.to_bits(), point.z.to_bits(), "seed={} case={case}", parse_seed());
+        let rotated = fuzz_ok(
+            bounded_rotate_z(point, pivot, angle, -1.5, 1.5),
+            seed,
+            case,
+            PROPERTY,
+            "bounded_rotate_z",
+        );
+        assert_eq!(
+            rotated.z.to_bits(),
+            point.z.to_bits(),
+            "property={PROPERTY} seed=0x{seed:016x} case={case}: Z coordinate changed"
+        );
 
         let before = (point.x - pivot.x).powi(2) + (point.y - pivot.y).powi(2);
         let after = (rotated.x - pivot.x).powi(2) + (rotated.y - pivot.y).powi(2);
         let tolerance = 2.0e-12 * before.max(1.0);
-        assert!((before - after).abs() <= tolerance, "seed={} case={case} before={before:e} after={after:e} tol={tolerance:e}", parse_seed());
+        assert!(
+            (before - after).abs() <= tolerance,
+            "property={PROPERTY} seed=0x{seed:016x} case={case} before={before:e} after={after:e} tol={tolerance:e}"
+        );
     }
 }
 
 #[test]
 fn property_structural_result_identity_is_worker_independent_and_nonclinical() {
+    const PROPERTY: &str = "worker-independent-structural-identity";
+    let seed = parse_seed();
     let cases = (case_count() / 16).clamp(8, MAX_RUNTIME_CASES);
     let mut rng = rng_for(0x5255_4e49_4445_4e54); // RUNIDENT
-    let loaded = load_profile(fixture_path()).expect("repository V0 profile must load");
+    let loaded = load_profile(fixture_path()).unwrap_or_else(|error| {
+        panic!(
+            "property={PROPERTY} seed=0x{seed:016x}: repository V0 profile failed to load: {error}"
+        )
+    });
 
     for case in 0..cases {
         let work_items = 1 + rng.bounded_u64(129);
         let workers_a = 1 + rng.bounded_usize(32);
         let workers_b = 1 + rng.bounded_usize(32);
-        let a = run_structural_fixture(&loaded, RunConfig::new(work_items, workers_a).unwrap()).unwrap();
-        let b = run_structural_fixture(&loaded, RunConfig::new(work_items, workers_b).unwrap()).unwrap();
+        let config_a = fuzz_ok(
+            RunConfig::new(work_items, workers_a),
+            seed,
+            case,
+            PROPERTY,
+            "RunConfig::new(a)",
+        );
+        let config_b = fuzz_ok(
+            RunConfig::new(work_items, workers_b),
+            seed,
+            case,
+            PROPERTY,
+            "RunConfig::new(b)",
+        );
+        let a = fuzz_ok(
+            run_structural_fixture(&loaded, config_a),
+            seed,
+            case,
+            PROPERTY,
+            "run_structural_fixture(a)",
+        );
+        let b = fuzz_ok(
+            run_structural_fixture(&loaded, config_b),
+            seed,
+            case,
+            PROPERTY,
+            "run_structural_fixture(b)",
+        );
 
-        assert_eq!(a.result_sha256, b.result_sha256, "seed={} case={case}", parse_seed());
-        assert_eq!(a.diagnostic_xor_fnv1a64, b.diagnostic_xor_fnv1a64, "seed={} case={case}", parse_seed());
-        assert_eq!(a.min_pair_distance_squared.to_bits(), b.min_pair_distance_squared.to_bits(), "seed={} case={case}", parse_seed());
-        assert_eq!(a.max_pair_distance_squared.to_bits(), b.max_pair_distance_squared.to_bits(), "seed={} case={case}", parse_seed());
-        assert!(a.result_identity_worker_independent && b.result_identity_worker_independent);
-        assert_eq!(a.validation_level, "V0");
-        assert!(a.non_clinical);
-        assert_eq!(a.inv_bio_001, INV_BIO_001);
-        assert!(!a.biological_validity_claimed);
-        assert!(!a.clinical_validity_claimed);
-        assert!(!a.performance_claim);
+        assert_eq!(
+            a.result_sha256, b.result_sha256,
+            "property={PROPERTY} seed=0x{seed:016x} case={case}: result identity differs by workers"
+        );
+        assert_eq!(
+            a.diagnostic_xor_fnv1a64, b.diagnostic_xor_fnv1a64,
+            "property={PROPERTY} seed=0x{seed:016x} case={case}: diagnostic differs by workers"
+        );
+        assert_eq!(
+            a.min_pair_distance_squared.to_bits(),
+            b.min_pair_distance_squared.to_bits(),
+            "property={PROPERTY} seed=0x{seed:016x} case={case}: min distance differs by workers"
+        );
+        assert_eq!(
+            a.max_pair_distance_squared.to_bits(),
+            b.max_pair_distance_squared.to_bits(),
+            "property={PROPERTY} seed=0x{seed:016x} case={case}: max distance differs by workers"
+        );
+
+        for (run_label, summary) in [("a", &a), ("b", &b)] {
+            assert!(
+                summary.result_identity_worker_independent,
+                "property={PROPERTY} seed=0x{seed:016x} case={case} run={run_label}: worker-independence flag false"
+            );
+            assert_eq!(
+                summary.validation_level, "V0",
+                "property={PROPERTY} seed=0x{seed:016x} case={case} run={run_label}: validation level promoted"
+            );
+            assert!(
+                summary.non_clinical,
+                "property={PROPERTY} seed=0x{seed:016x} case={case} run={run_label}: non_clinical flag false"
+            );
+            assert_eq!(
+                summary.inv_bio_001, INV_BIO_001,
+                "property={PROPERTY} seed=0x{seed:016x} case={case} run={run_label}: INV-BIO-001 changed"
+            );
+            assert!(
+                !summary.biological_validity_claimed,
+                "property={PROPERTY} seed=0x{seed:016x} case={case} run={run_label}: biological validity promoted"
+            );
+            assert!(
+                !summary.clinical_validity_claimed,
+                "property={PROPERTY} seed=0x{seed:016x} case={case} run={run_label}: clinical validity promoted"
+            );
+            assert!(
+                !summary.performance_claim,
+                "property={PROPERTY} seed=0x{seed:016x} case={case} run={run_label}: performance claim promoted"
+            );
+        }
     }
 }
 
 #[test]
 fn property_nonfinite_and_out_of_domain_inputs_fail_closed() {
+    const PROPERTY: &str = "fail-closed-inputs";
+    let seed = parse_seed();
     let cases = case_count();
     let mut rng = rng_for(0x4641_494c_434c_4f53); // FAILCLOS
 
@@ -277,8 +532,17 @@ fn property_nonfinite_and_out_of_domain_inputs_fail_closed() {
             1 => Vec3::new(0.0, f64::INFINITY, 0.0),
             _ => Vec3::new(0.0, 0.0, f64::NEG_INFINITY),
         };
-        assert!(finite.checked_squared_distance(bad).is_err(), "seed={} case={case}", parse_seed());
-        assert!(SquaredDistanceGate::new(f64::NAN).is_err(), "seed={} case={case}", parse_seed());
-        assert!(bounded_rotate_z(finite, Vec3::new(0.0, 0.0, 0.0), 2.0, -1.0, 1.0).is_err(), "seed={} case={case}", parse_seed());
+        assert!(
+            finite.checked_squared_distance(bad).is_err(),
+            "property={PROPERTY} seed=0x{seed:016x} case={case}: non-finite distance input accepted"
+        );
+        assert!(
+            SquaredDistanceGate::new(f64::NAN).is_err(),
+            "property={PROPERTY} seed=0x{seed:016x} case={case}: NaN cutoff accepted"
+        );
+        assert!(
+            bounded_rotate_z(finite, Vec3::new(0.0, 0.0, 0.0), 2.0, -1.0, 1.0).is_err(),
+            "property={PROPERTY} seed=0x{seed:016x} case={case}: out-of-bounds rotation accepted"
+        );
     }
 }
