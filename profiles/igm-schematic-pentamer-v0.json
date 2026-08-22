@@ -1,0 +1,54 @@
+{
+  "schema": "IGM-MODEL-PROFILE-V1",
+  "model_id": "IGM-SCHEMATIC-PENTAMER-V0",
+  "version": "0.2.0",
+  "validation_level": "V0",
+  "representation": {
+    "primary": "hybrid",
+    "coordinate_adapter": "cartesian",
+    "coordinate_adapter_is_biological_ontology": false
+  },
+  "components": [
+    {"id": "subunit:a", "kind": "schematic-igm-subunit", "source_status": "assumed", "notes": "V0 visualization component only."},
+    {"id": "subunit:b", "kind": "schematic-igm-subunit", "source_status": "assumed", "notes": "V0 visualization component only."},
+    {"id": "subunit:c", "kind": "schematic-igm-subunit", "source_status": "assumed", "notes": "V0 visualization component only."},
+    {"id": "subunit:d", "kind": "schematic-igm-subunit", "source_status": "assumed", "notes": "V0 visualization component only."},
+    {"id": "subunit:e", "kind": "schematic-igm-subunit", "source_status": "assumed", "notes": "V0 visualization component only."},
+    {"id": "fab:a:l", "kind": "schematic-fab-arm", "source_status": "assumed", "notes": "Articulated placeholder, not a measured conformation."},
+    {"id": "fab:a:r", "kind": "schematic-fab-arm", "source_status": "assumed", "notes": "Articulated placeholder, not a measured conformation."},
+    {"id": "fab:b:l", "kind": "schematic-fab-arm", "source_status": "assumed", "notes": "Articulated placeholder, not a measured conformation."},
+    {"id": "fab:b:r", "kind": "schematic-fab-arm", "source_status": "assumed", "notes": "Articulated placeholder, not a measured conformation."},
+    {"id": "fab:c:l", "kind": "schematic-fab-arm", "source_status": "assumed", "notes": "Articulated placeholder, not a measured conformation."},
+    {"id": "fab:c:r", "kind": "schematic-fab-arm", "source_status": "assumed", "notes": "Articulated placeholder, not a measured conformation."},
+    {"id": "fab:d:l", "kind": "schematic-fab-arm", "source_status": "assumed", "notes": "Articulated placeholder, not a measured conformation."},
+    {"id": "fab:d:r", "kind": "schematic-fab-arm", "source_status": "assumed", "notes": "Articulated placeholder, not a measured conformation."},
+    {"id": "fab:e:l", "kind": "schematic-fab-arm", "source_status": "assumed", "notes": "Articulated placeholder, not a measured conformation."},
+    {"id": "fab:e:r", "kind": "schematic-fab-arm", "source_status": "assumed", "notes": "Articulated placeholder, not a measured conformation."},
+    {"id": "jchain:0", "kind": "schematic-j-chain-constraint", "source_status": "assumed", "notes": "Constraint marker only; not an atomistic J-chain model."}
+  ],
+  "parameters": [
+    {"name": "assembly_sector_count", "value": 5, "unit": "count", "status": "assumed", "derivation": "assumed", "notes": "Schematic pentamer cardinality for V0 visualization."},
+    {"name": "core_radius", "value": 1.0, "unit": "model-unit", "status": "assumed", "derivation": "assumed", "lower_bound": 0.25, "upper_bound": 4.0, "notes": "Purely schematic drawing scale."},
+    {"name": "fab_length", "value": 0.82, "unit": "model-unit", "status": "assumed", "derivation": "assumed", "lower_bound": 0.2, "upper_bound": 2.0, "notes": "Purely schematic arm length."},
+    {"name": "fab_spread_deg", "value": 26, "unit": "degree", "status": "assumed", "derivation": "assumed", "lower_bound": 0, "upper_bound": 80, "notes": "Visualization articulation angle, not a measured hinge distribution."},
+    {"name": "jchain_offset", "value": 0.32, "unit": "model-unit", "status": "assumed", "derivation": "assumed", "lower_bound": 0, "upper_bound": 1.0, "notes": "Schematic asymmetry marker only."},
+    {"name": "logical_ensemble_size", "value": 16777216, "unit": "states", "status": "assumed", "derivation": "assumed", "notes": "Logical demonstration domain; does not claim 2^24 biological conformations."},
+    {"name": "evaluated_sample_count", "value": 4096, "unit": "states", "status": "assumed", "derivation": "assumed", "notes": "Browser telemetry demonstration count."},
+    {"name": "displayed_sample_count", "value": 64, "unit": "states", "status": "assumed", "derivation": "assumed", "notes": "Bounded visual sample count."},
+    {"name": "experimentally_calibrated_hinge_distribution", "status": "unknown", "source_id": null, "derivation": "unknown", "notes": "Intentionally unknown in V0. No placeholder value is supplied."}
+  ],
+  "constraints": [
+    {"id": "constraint:five-sector-ring", "kind": "synthetic-topology", "status": "assumed", "definition": {"participants": ["subunit:a", "subunit:b", "subunit:c", "subunit:d", "subunit:e"], "closed": true}},
+    {"id": "constraint:jchain-marker", "kind": "synthetic-asymmetry-marker", "status": "assumed", "definition": {"participants": ["jchain:0", "subunit:a", "subunit:e"]}},
+    {"id": "constraint:two-arms-per-sector", "kind": "synthetic-articulation", "status": "assumed", "definition": {"arms_per_subunit": 2}}
+  ],
+  "source_ids": [],
+  "claims": {
+    "biological_validity_claimed": false,
+    "clinical_validity_claimed": false,
+    "medical_device_claimed": false,
+    "diagnostic_use_claimed": false,
+    "treatment_use_claimed": false
+  },
+  "notes": "V0 deterministic browser fixture. It exists to exercise geometry, numerical-array, graph, fabric and cyclic-coordinate views. It is not a validated IgM conformation and contains no patient data."
+}

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="IGM deterministic V0 research visual laboratory. Non-clinical research software.">
+  <title>IGM Visual Laboratory</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">QSOLKCB / IGM</p>
+      <h1>IgM Structural Research Visual Laboratory</h1>
+      <p class="subtitle">Deterministic V0 schematic exploration. Replaceable models, transparent assumptions, zero clinical claims.</p>
+    </div>
+    <div class="badges" aria-label="Research status">
+      <span class="badge">V0 SCHEMATIC</span>
+      <span class="badge">NOT CLINICAL</span>
+      <span class="badge">NO PATIENT DATA</span>
+    </div>
+  </header>
+
+  <aside class="invariant-banner" aria-label="Core scientific invariant">
+    <strong>INV-BIO-001</strong>
+    <span>Perfect Mathematics Does Not Equal Perfect Biological Reality</span>
+  </aside>
+
+  <main class="layout">
+    <section class="workspace card">
+      <nav class="view-tabs" aria-label="Visualization modes">
+        <button data-view="assembly" class="active">Assembly</button>
+        <button data-view="array">Array</button>
+        <button data-view="graph">Graph</button>
+        <button data-view="fabric">Fabric</button>
+        <button data-view="vortex">Vortex projection</button>
+      </nav>
+
+      <div id="graphControls" class="subcontrols hidden" aria-label="Graph layout">
+        <span>Graph layout:</span>
+        <button data-layout="structural" class="active">Structural</button>
+        <button data-layout="circular">Circular</button>
+        <button data-layout="hierarchical">Hierarchical</button>
+        <button data-layout="matrix">Adjacency matrix</button>
+      </div>
+
+      <div id="fabricControls" class="subcontrols hidden" aria-label="Fabric filters">
+        <span>Relationship classes:</span>
+        <label><input type="checkbox" value="structural" checked> structural</label>
+        <label><input type="checkbox" value="constraint" checked> constraint</label>
+      </div>
+
+      <div class="viz-wrap">
+        <svg id="viz" viewBox="0 0 1200 720" role="img" aria-label="IGM deterministic research visualization"></svg>
+      </div>
+
+      <div class="camera-controls" aria-label="Assembly camera controls">
+        <label>Rotate <input id="rotateControl" type="range" min="-180" max="180" value="0" step="1"></label>
+        <label>Zoom <input id="zoomControl" type="range" min="60" max="180" value="100" step="1"></label>
+        <button id="resetView">Reset view</button>
+      </div>
+    </section>
+
+    <aside class="sidebar">
+      <section class="card telemetry">
+        <h2>Telemetry</h2>
+        <dl id="telemetry"></dl>
+      </section>
+
+      <section class="card inspector">
+        <h2>Provenance inspector</h2>
+        <div id="inspector" class="inspector-body">Select a component, relationship, or parameter.</div>
+        <div id="parameterList" class="parameter-list" aria-label="Model parameters"></div>
+      </section>
+
+      <section class="card exports">
+        <h2>Exports</h2>
+        <div class="button-grid">
+          <button id="exportState">State JSON</button>
+          <button id="exportCsv">Observables CSV</button>
+          <button id="exportProvenance">Provenance JSON</button>
+          <button id="exportSvg">SVG snapshot</button>
+          <button id="recordWebm">8s WebM</button>
+        </div>
+        <p class="fineprint">Exports retain V0 / NOT CLINICAL labelling. Recording availability depends on browser MediaRecorder support.</p>
+      </section>
+
+      <section class="card references">
+        <h2>Method references</h2>
+        <div id="references">Loading registered sources…</div>
+      </section>
+    </aside>
+  </main>
+
+  <footer>
+    <p><strong>Research software only.</strong> The browser is a transparent research microscope, not biological authority.</p>
+    <p>Apache-2.0 fresh implementation. BioFabric is cited as a visualization-method reference; no BioFabric source code or assets are included.</p>
+  </footer>
+
+  <script type="module" src="./app.mjs"></script>
+</body>
+</html>
