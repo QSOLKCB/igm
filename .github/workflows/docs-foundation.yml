@@ -1,0 +1,59 @@
+name: IGM documentation foundation
+
+on:
+  push:
+    branches:
+      - main
+      - "agent/**"
+    paths:
+      - "README.md"
+      - "README4AI.md"
+      - "AGENTS.md"
+      - "DISCLAIMER.md"
+      - "CONTRIBUTING.md"
+      - "ROADMAP.md"
+      - "LICENSE"
+      - "docs/**"
+      - "governance/**"
+      - "research/**"
+      - "schemas/**"
+      - "tools/validate_docs.py"
+      - "tools/validate_profile.py"
+      - ".github/workflows/docs-foundation.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "README.md"
+      - "README4AI.md"
+      - "AGENTS.md"
+      - "DISCLAIMER.md"
+      - "CONTRIBUTING.md"
+      - "ROADMAP.md"
+      - "LICENSE"
+      - "docs/**"
+      - "governance/**"
+      - "research/**"
+      - "schemas/**"
+      - "tools/validate_docs.py"
+      - "tools/validate_profile.py"
+      - ".github/workflows/docs-foundation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Validate JSON syntax
+        run: |
+          python3 -m json.tool governance/policy.json >/dev/null
+          python3 -m json.tool research/sources.json >/dev/null
+          python3 -m json.tool schemas/model-profile.schema.json >/dev/null
+      - name: Validate documentation and hard invariants
+        run: python3 tools/validate_docs.py
+      - name: Validate model-profile semantic gate
+        run: python3 tools/validate_profile.py --self-test

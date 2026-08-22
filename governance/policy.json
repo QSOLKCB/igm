@@ -1,0 +1,69 @@
+{
+  "schema": "igm-governance-policy/1",
+  "project": "QSOLKCB/igm",
+  "status": "research-software-non-clinical",
+  "intended_purpose": "deterministic computational research infrastructure for source-informed or hypothetical IgM structural models",
+  "human_data_default": "deny",
+  "clinical_use_default": "deny",
+  "institutional_endorsement_default": "deny",
+  "core_invariants": [
+    {
+      "id": "INV-BIO-001",
+      "name": "Perfect Mathematics Does Not Equal Perfect Biological Reality",
+      "normative": true,
+      "statement": "Mathematical exactness, deterministic execution, numerical convergence, reproducibility, CPU/GPU agreement, or accelerator performance do not by themselves establish biological validity or clinical validity.",
+      "forbidden_promotion": [
+        "mathematical-correctness-to-biological-validity",
+        "computational-correctness-to-biological-validity",
+        "accelerator-agreement-to-biological-validity",
+        "biological-validity-to-clinical-validity-without-external-evidence"
+      ]
+    },
+    {
+      "id": "INV-BIO-002",
+      "name": "Representation Is Not Ontology",
+      "normative": true,
+      "statement": "Geometry, tensor, graph, vortex-inspired, or other mathematical representations are computational parameterizations and must not be presented as literal biological ontology without independent evidence."
+    },
+    {
+      "id": "INV-BIO-003",
+      "name": "Unknown Beats Plausible Invention",
+      "normative": true,
+      "statement": "Unsupported biological values remain unknown or explicitly assumed and must not be silently invented or promoted to evidence."
+    },
+    {
+      "id": "INV-BIO-004",
+      "name": "Runtime Success Is Not Clinical Evidence",
+      "normative": true,
+      "statement": "Passing tests, residual gates, reproducibility checks, receipts, or benchmarks do not establish diagnosis, prognosis, treatment, monitoring, or clinical validation."
+    }
+  ],
+  "biological_parameter_statuses": [
+    "observed",
+    "source-derived",
+    "calibrated",
+    "inferred",
+    "assumed",
+    "unknown"
+  ],
+  "prohibited_upstream_claims": [
+    "diagnosis",
+    "screening",
+    "patient-specific-prognosis",
+    "treatment-recommendation",
+    "treatment-selection",
+    "disease-monitoring",
+    "clinical-decision-support",
+    "cure-claim",
+    "institutional-endorsement-without-evidence"
+  ],
+  "required_docs": [
+    "README.md",
+    "README4AI.md",
+    "AGENTS.md",
+    "docs/CORE_INVARIANTS.md",
+    "docs/MEDICAL_RESEARCH_BOUNDARY.md",
+    "docs/AUSTRALIAN_ETHICS_AND_REGULATORY.md",
+    "docs/ARCHITECTURE.md"
+  ]
+}
