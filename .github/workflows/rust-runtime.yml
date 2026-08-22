@@ -24,6 +24,8 @@ on:
       - "docs/PENTA_CRT_CPU.md"
       - "docs/EXECUTION_CAMPAIGNS.md"
       - "docs/PROPERTY_FUZZING.md"
+      - "docs/TIMING_BENCHMARK.md"
+      - "docs/PRE_PHASE5_READINESS.md"
       - "ROADMAP.md"
       - ".github/workflows/rust-runtime.yml"
   pull_request:
@@ -48,6 +50,8 @@ on:
       - "docs/PENTA_CRT_CPU.md"
       - "docs/EXECUTION_CAMPAIGNS.md"
       - "docs/PROPERTY_FUZZING.md"
+      - "docs/TIMING_BENCHMARK.md"
+      - "docs/PRE_PHASE5_READINESS.md"
       - "ROADMAP.md"
       - ".github/workflows/rust-runtime.yml"
 
@@ -153,6 +157,33 @@ jobs:
           assert report['max_block_reuse_vs_brute_pair_residual'] <= report['residual_tolerance']
           assert report['biological_validity_claimed'] is False
           print('OK: PENTA-CRT structured reuse remains inside fixed residual gate')
+          PY
+      - name: Phase 3B scalar/reference vs optimized timing benchmark
+        run: |
+          ./target/release/igm-benchmark --count 257 --repetitions 3 --warmups 1 --verify-samples 257 > /tmp/igm-timing-benchmark.json
+          python3 - <<'PY'
+          import json, math
+          report = json.load(open('/tmp/igm-timing-benchmark.json', encoding='utf-8'))
+          assert report['schema'] == 'IGM-PENTA-CRT-TIMING-BENCHMARK-V1'
+          assert report['benchmark_contract'] == 'IGM-PHASE3B-SCALAR-VS-OPTIMIZED-BENCHMARK-V1'
+          assert report['reference_profile'] == 'IGM-PENTA-CRT-F64-REFERENCE-BRUTE-V1'
+          assert report['optimized_contract'] == 'IGM-PENTA-CRT-CPU-V1'
+          assert report['validation_level'] == 'V0'
+          assert report['release_build'] is True
+          assert report['single_threaded_comparison'] is True
+          assert report['phase3b_residual_gate_passed'] is True
+          assert report['verification_tolerance'] == 1e-12
+          assert len(report['reference_times_ns']) == len(report['optimized_times_ns']) == 3
+          assert report['reference_median_ns'] > 0 and report['optimized_median_ns'] > 0
+          assert math.isfinite(report['observed_speedup_ratio']) and report['observed_speedup_ratio'] > 0
+          assert report['benchmark_timing_identity_bearing'] is False
+          assert report['correctness_identity_includes_timing'] is False
+          assert report['speedup_claimed'] is False
+          assert report['performance_claim'] is False
+          assert report['non_clinical'] is True
+          assert report['biological_validity_claimed'] is False
+          assert report['clinical_validity_claimed'] is False
+          print('OK: timing benchmark contract is bounded and observation-only; no speedup threshold asserted')
           PY
       - name: PENTA-CRT optimized worker-independent identity
         run: |

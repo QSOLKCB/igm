@@ -14,6 +14,8 @@ PHASE3A_GATE = (
     "Rust/Pages agreement establishes implementation agreement for the schematic fixture only. "
     "PR3 does not create a source-informed biological model, molecular dynamics engine, or clinical result."
 )
+BENCHMARK_CONTRACT = "IGM-PHASE3B-SCALAR-VS-OPTIMIZED-BENCHMARK-V1"
+PRE_PHASE5_STATUS = "BLOCKED_ON_PHASE4"
 
 REQUIRED_FILES = [
     "LICENSE",
@@ -32,6 +34,8 @@ REQUIRED_FILES = [
     "docs/FLINDERS_RESEARCH_HANDOFF.md",
     "docs/EXECUTION_CAMPAIGNS.md",
     "docs/PROPERTY_FUZZING.md",
+    "docs/TIMING_BENCHMARK.md",
+    "docs/PRE_PHASE5_READINESS.md",
     "governance/policy.json",
     "research/sources.json",
     "schemas/model-profile.schema.json",
@@ -112,11 +116,47 @@ def main() -> int:
     ):
         if required not in property_doc:
             fail(f"property-fuzz documentation missing required boundary/contract text: {required!r}")
+
+    benchmark_doc = (ROOT / "docs/TIMING_BENCHMARK.md").read_text(encoding="utf-8")
+    for required in (
+        BENCHMARK_CONTRACT,
+        "scalar deterministic reference",
+        "1e-12",
+        "benchmark_timing_identity_bearing = false",
+        "correctness_identity_includes_timing = false",
+        "speedup_claimed = false",
+        "performance_claim = false",
+        "does not itself authorize a speedup claim",
+    ):
+        if required not in benchmark_doc:
+            fail(f"timing benchmark documentation missing contract/boundary text: {required!r}")
+
+    readiness_doc = (ROOT / "docs/PRE_PHASE5_READINESS.md").read_text(encoding="utf-8")
+    for required in (
+        PRE_PHASE5_STATUS,
+        "Phase 4 is not optional",
+        "source-adapter interface",
+        "conflict and unknown",
+        "The next substantive scientific architecture PR should be **Phase 4**, not Phase 5.",
+    ):
+        if required not in readiness_doc:
+            fail(f"pre-Phase 5 readiness audit missing required text: {required!r}")
+
     roadmap = (ROOT / "ROADMAP.md").read_text(encoding="utf-8")
     if "- [x] Add property-based fuzzing beyond deterministic edge-case tests." not in roadmap:
         fail("Phase 3A property-fuzz roadmap item must remain complete")
     if PHASE3A_GATE not in roadmap:
         fail("Phase 3A gate text changed or is missing from ROADMAP.md")
+    if "- [x] Add a dedicated scalar/reference-vs-optimized timing benchmark before making any speedup claim." not in roadmap:
+        fail("Phase 3B timing-benchmark roadmap item must be complete")
+    if BENCHMARK_CONTRACT not in roadmap:
+        fail("ROADMAP.md must name the Phase 3B timing-benchmark contract")
+    if PRE_PHASE5_STATUS not in roadmap:
+        fail("ROADMAP.md must keep Phase 5 blocked on Phase 4")
+    if "Status: **next required phase; hard blocker for Phase 5**." not in roadmap:
+        fail("ROADMAP.md must keep Phase 4 as the next required pre-Phase 5 phase")
+    if "**Entry condition: Phase 4 gate implemented and pre-Phase 5 audit updated from `BLOCKED_ON_PHASE4`.**" not in roadmap:
+        fail("Phase 5 entry condition must require the Phase 4 gate")
 
     license_text = (ROOT / "LICENSE").read_text(encoding="utf-8")
     if "Apache License" not in license_text or "Version 2.0" not in license_text:

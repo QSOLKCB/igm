@@ -58,19 +58,21 @@ Read:
 
 before changing model semantics, data handling, medical language, or validation status.
 
-For runtime scheduling, memory-layout, campaign, accelerator, or property-fuzz changes also read:
+For runtime scheduling, memory-layout, campaign, accelerator, property-fuzz, or performance-benchmark changes also read:
 
 - `docs/RUST_RUNTIME.md`
 - `docs/PENTA_CRT_CPU.md`
 - `docs/EXECUTION_CAMPAIGNS.md`
 - `docs/PROPERTY_FUZZING.md`
+- `docs/TIMING_BENCHMARK.md`
+- `docs/PRE_PHASE5_READINESS.md`
 - `docs/RUNTIME_LINEAGE.md`
 
 ## Prohibited claims
 
 Do not state or imply that this repository diagnoses, predicts, monitors, prevents, treats or cures disease; recommends treatment; models an individual patient; or is clinically validated or approved.
 
-Do not convert personal experience, anecdote, visual resemblance, numerical stability, accelerator agreement or an attractive plot into biological evidence.
+Do not convert personal experience, anecdote, visual resemblance, numerical stability, accelerator agreement, benchmark speed, or an attractive plot into biological evidence.
 
 ## Human data
 
@@ -125,6 +127,28 @@ Future runtimes, Pages tools, and accelerator paths must reject a profile that f
 - Fuzzing may test address bijections, partition coverage, numerical invariants, bounded transforms, fail-closed inputs, and worker-independent correctness.
 - Random generators, fuzz seeds, and case order must never enter scientific/model identity unless a future stochastic model explicitly declares that contract.
 - Property-fuzz success is computational evidence only. It cannot create a source-informed model, molecular-dynamics result, biological validity, clinical validity, or validation-level promotion.
+
+## Performance benchmarking
+
+`IGM-PHASE3B-SCALAR-VS-OPTIMIZED-BENCHMARK-V1` is the dedicated Phase 3B algorithmic timing comparison.
+
+- The benchmark must compare the same admitted V0 conformation slice.
+- The Phase 3B fixed residual gate must pass before timing results are accepted.
+- The optimized side must use one worker for the scalar/reference-vs-optimized algorithmic comparison.
+- Warmups and repeated measurements are mandatory; the harness alternates measurement order and reports medians.
+- Timing, throughput, worker choice, and observed speedup ratio are non-identity metadata.
+- CI must exercise the benchmark contract but must not require a speedup on a shared hosted runner.
+- Benchmark output must keep `speedup_claimed=false` and `performance_claim=false`.
+- A repository-level speedup statement requires retained release-build benchmark receipts, exact profile/algorithm/slice identities, hardware/toolchain scope, repeated-run evidence, and raw timings. One local or CI run is insufficient.
+- A performance observation cannot promote biological or clinical validation.
+
+## Pre-Phase 5 readiness
+
+`docs/PRE_PHASE5_READINESS.md` is normative project sequencing guidance.
+
+Phase 5 is currently `BLOCKED_ON_PHASE4`. Do not begin Phase 5 representation work by assuming the evidence-adapter layer exists.
+
+Phase 4 must establish a replaceable source-adapter contract, provenance/uncertainty handling, conflict/unknown preservation, licence/access propagation, and a fail-closed source-ingestion gate before the readiness state can be promoted.
 
 ## Validation
 
@@ -184,6 +208,12 @@ Phase 3A runtime/property-fuzz changes must additionally run the replayable gene
 IGM_PROPERTY_FUZZ_SEED=0x49474d50524f5037 \
 IGM_PROPERTY_FUZZ_CASES=2048 \
 cargo test --locked --test property_fuzz -- --nocapture
+```
+
+Phase 3B performance changes must additionally run a bounded release benchmark and validate only its contract/nonclaim fields, never a minimum speedup:
+
+```bash
+./target/release/igm-benchmark --count 257 --repetitions 3 --warmups 1 --verify-samples 257
 ```
 
 Phase 3C campaign changes must additionally exercise and validate an accepted campaign directory with:
