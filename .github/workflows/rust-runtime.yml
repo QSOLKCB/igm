@@ -15,6 +15,7 @@ on:
       - "tools/validate_profile.py"
       - "tools/validate_json_schema.py"
       - "tools/validate_campaign.py"
+      - "tools/validate_campaign_v2.py"
       - "tests/site-model.mjs"
       - "site/igm-model.mjs"
       - "docs/RUST_RUNTIME.md"
@@ -36,6 +37,7 @@ on:
       - "tools/validate_profile.py"
       - "tools/validate_json_schema.py"
       - "tools/validate_campaign.py"
+      - "tools/validate_campaign_v2.py"
       - "tests/site-model.mjs"
       - "site/igm-model.mjs"
       - "docs/RUST_RUNTIME.md"
@@ -68,6 +70,8 @@ jobs:
           python3 -m json.tool runtime/profiles/igm-penta-crt-cpu-v1.json >/dev/null
           python3 -m json.tool schemas/campaign-manifest.schema.json >/dev/null
           python3 -m json.tool schemas/correctness-receipt.schema.json >/dev/null
+          python3 -m json.tool schemas/phase3c-gate-receipt.schema.json >/dev/null
+          python3 -m py_compile tools/validate_campaign.py tools/validate_campaign_v2.py
       - name: Preserve browser reference
         run: node tests/site-model.mjs
       - name: Rust tests
@@ -84,17 +88,13 @@ jobs:
           ./target/release/igm-runtime run --work-items 257 --workers 7 > /tmp/igm-run-7.json
           python3 - <<'PY'
           import json
-          with open('/tmp/igm-run-1.json', encoding='utf-8') as f:
-              one = json.load(f)['summary']
-          with open('/tmp/igm-run-7.json', encoding='utf-8') as f:
-              seven = json.load(f)['summary']
+          one = json.load(open('/tmp/igm-run-1.json', encoding='utf-8'))['summary']
+          seven = json.load(open('/tmp/igm-run-7.json', encoding='utf-8'))['summary']
           assert one['result_sha256'] == seven['result_sha256']
           assert one['diagnostic_xor_fnv1a64'] == seven['diagnostic_xor_fnv1a64']
           assert one['manifest_sha256'] != seven['manifest_sha256']
-          assert one['requested_workers'] == 1
-          assert seven['requested_workers'] == 7
-          assert one['workers'] == 1
-          assert seven['workers'] == 7
+          assert one['requested_workers'] == 1 and seven['requested_workers'] == 7
+          assert one['workers'] == 1 and seven['workers'] == 7
           assert one['numerical_profile'] == 'IGM-RUST-F64-DETERMINISTIC-POLY-V1'
           assert one['hot_loop_trig_calls'] == 0 == seven['hot_loop_trig_calls']
           assert one['hot_loop_sqrt_calls'] == 0 == seven['hot_loop_sqrt_calls']
@@ -107,8 +107,7 @@ jobs:
           ./target/release/igm-runtime run --work-items 1 --workers 7 > /tmp/igm-run-small.json
           python3 - <<'PY'
           import json
-          with open('/tmp/igm-run-small.json', encoding='utf-8') as f:
-              summary = json.load(f)['summary']
+          summary = json.load(open('/tmp/igm-run-small.json', encoding='utf-8'))['summary']
           assert summary['requested_workers'] == 7
           assert summary['workers'] == 1
           assert len(summary['worker_summaries']) == 1
@@ -120,10 +119,8 @@ jobs:
           ./target/release/igm-penta-crt address 17000 > /tmp/igm-penta-address.json
           python3 - <<'PY'
           import json
-          with open('/tmp/igm-penta-profile.json', encoding='utf-8') as f:
-              profile = json.load(f)
-          with open('/tmp/igm-penta-address.json', encoding='utf-8') as f:
-              address = json.load(f)
+          profile = json.load(open('/tmp/igm-penta-profile.json', encoding='utf-8'))
+          address = json.load(open('/tmp/igm-penta-address.json', encoding='utf-8'))
           assert profile['radices'] == [17, 17, 9, 9]
           assert profile['total_conformations'] == 23409
           assert profile['numerical_profile'] == 'IGM-PENTA-CRT-F64-LUT-BLOCK-CIRCULANT-ZRESIDUAL-V1'
@@ -136,17 +133,17 @@ jobs:
           ./target/release/igm-penta-crt verify --samples 257 > /tmp/igm-penta-verify.json
           python3 - <<'PY'
           import json
-          with open('/tmp/igm-penta-verify.json', encoding='utf-8') as f:
-              report = json.load(f)
+          report = json.load(open('/tmp/igm-penta-verify.json', encoding='utf-8'))
           assert report['accepted'] is True
           assert report['planar_block_evaluations_per_conformation'] == 45
           assert report['sparse_j_evaluations_per_conformation'] == 15
           assert report['structured_distance_evaluations_per_conformation'] == 60
           assert report['brute_distance_evaluations_per_conformation'] == 120
           assert report['exact_z_residual_corrections_per_conformation'] == 105
+          assert report['residual_tolerance'] == 1e-12
           assert report['max_block_reuse_vs_brute_pair_residual'] <= report['residual_tolerance']
           assert report['biological_validity_claimed'] is False
-          print('OK: PENTA-CRT XY structured reuse + exact Z residuals remain within reference tolerance')
+          print('OK: PENTA-CRT structured reuse remains inside fixed residual gate')
           PY
       - name: PENTA-CRT optimized worker-independent identity
         run: |
@@ -154,10 +151,8 @@ jobs:
           ./target/release/igm-penta-crt run --start 100 --count 257 --workers 7 > /tmp/igm-penta-7.json
           python3 - <<'PY'
           import json
-          with open('/tmp/igm-penta-1.json', encoding='utf-8') as f:
-              one = json.load(f)['summary']
-          with open('/tmp/igm-penta-7.json', encoding='utf-8') as f:
-              seven = json.load(f)['summary']
+          one = json.load(open('/tmp/igm-penta-1.json', encoding='utf-8'))['summary']
+          seven = json.load(open('/tmp/igm-penta-7.json', encoding='utf-8'))['summary']
           assert one['result_sha256'] == seven['result_sha256']
           assert one['diagnostic_xor_fnv1a64'] == seven['diagnostic_xor_fnv1a64']
           assert one['manifest_sha256'] != seven['manifest_sha256']
@@ -180,20 +175,16 @@ jobs:
           graph = json.load(open('/tmp/igm-exec-graph.json', encoding='utf-8'))
           layout = json.load(open('/tmp/igm-layout.json', encoding='utf-8'))
           plan = json.load(open('/tmp/igm-plan.json', encoding='utf-8'))
-          assert graph['node_count'] == 30
-          assert graph['degree'] == 5
-          assert graph['edge_count_undirected'] == 75
+          assert graph['node_count'] == 30 and graph['degree'] == 5 and graph['edge_count_undirected'] == 75
           assert graph['biological_adjacency_claimed'] is False
-          assert layout['warp_width'] == 32
-          assert layout['meaningful_lanes'] == 30
-          assert layout['padding_lanes'] == 2
+          assert layout['warp_width'] == 32 and layout['meaningful_lanes'] == 30 and layout['padding_lanes'] == 2
           assert layout['scientific_count_includes_padding'] is False
           assert layout['cell_alignment_bytes'] == 128
           assert plan['memory']['chunk_count'] > 1
           assert plan['biological_validity_claimed'] is False
           print('OK: Phase 3C graph/layout/memory planning contract')
           PY
-      - name: Phase 3C accepted campaign and artifact validation
+      - name: Phase 3C executable acceptance gate
         run: |
           rm -rf /tmp/igm-campaign-small /tmp/igm-campaign-wide
           ./target/release/igm-campaign run --start 100 --count 31 --workers 1 --budget-bytes 1024 --verify-samples 17 --out /tmp/igm-campaign-small > /tmp/igm-campaign-small.json
@@ -202,31 +193,76 @@ jobs:
           python3 tools/validate_campaign.py /tmp/igm-campaign-wide
           python3 - <<'PY'
           import json
-          one = json.load(open('/tmp/igm-campaign-small/correctness-receipt.json', encoding='utf-8'))
-          seven = json.load(open('/tmp/igm-campaign-wide/correctness-receipt.json', encoding='utf-8'))
-          m1 = json.load(open('/tmp/igm-campaign-small/memory-plan.json', encoding='utf-8'))
-          m7 = json.load(open('/tmp/igm-campaign-wide/memory-plan.json', encoding='utf-8'))
+          from pathlib import Path
+          small = Path('/tmp/igm-campaign-small')
+          wide = Path('/tmp/igm-campaign-wide')
+          one = json.load(open(small/'correctness-receipt.json', encoding='utf-8'))
+          seven = json.load(open(wide/'correctness-receipt.json', encoding='utf-8'))
+          g1 = json.load(open(small/'phase3c-gate.json', encoding='utf-8'))
+          g7 = json.load(open(wide/'phase3c-gate.json', encoding='utf-8'))
+          m1 = json.load(open(small/'campaign-manifest.json', encoding='utf-8'))
+          m7 = json.load(open(wide/'campaign-manifest.json', encoding='utf-8'))
+          b1 = json.load(open(small/'benchmark-receipt.json', encoding='utf-8'))
+          b7 = json.load(open(wide/'benchmark-receipt.json', encoding='utf-8'))
           assert one['result_sha256'] == seven['result_sha256']
           assert one['diagnostic_xor_fnv1a64'] == seven['diagnostic_xor_fnv1a64']
-          assert one['result_identity_worker_independent'] is True
-          assert one['result_identity_chunk_independent'] is True
-          assert m1['chunk_count'] != m7['chunk_count']
-          assert one['biological_validity_claimed'] is False
-          print('OK: Phase 3C correctness identity survives worker/chunk changes')
+          assert g1['gate_identity_sha256'] == g7['gate_identity_sha256']
+          for gate in (g1, g7):
+              assert gate['accepted'] is True
+              assert gate['profile_identity_preserved'] is True
+              assert gate['algorithm_identity_preserved'] is True
+              assert gate['phase3b_residual_gate_passed'] is True
+              assert gate['finite_and_bounded'] is True
+              assert gate['declared_slice_preserved'] is True
+              assert gate['correctness_identity_recomputed'] is True
+              assert gate['worker_independent_correctness_identity'] is True
+              assert gate['chunk_independent_correctness_identity'] is True
+              assert gate['benchmark_timing_excluded_from_correctness_identity'] is True
+              assert gate['implementation_structures_biological_relationships_claimed'] is False
+              assert gate['validation_level_promoted_by_runtime'] is False
+              assert gate['validation_level'] == 'V0'
+          assert b1['elapsed_seconds'] != b7['elapsed_seconds'] or b1['requested_workers'] != b7['requested_workers']
+          assert b1['identity_bearing_correctness'] is False == b7['identity_bearing_correctness']
+          assert m1['schema'] == m7['schema'] == 'IGM-CAMPAIGN-MANIFEST-V2'
+          assert m1['manifest_sha256'] != m7['manifest_sha256']
+          assert m1['gate_identity_sha256'] == m7['gate_identity_sha256']
+          print('OK: explicit Phase 3C gate preserves correctness across worker/chunk/timing changes')
           PY
+      - name: Phase 3C semantic tamper rejection
+        run: |
+          rm -rf /tmp/igm-campaign-tampered
+          cp -a /tmp/igm-campaign-small /tmp/igm-campaign-tampered
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('/tmp/igm-campaign-tampered/phase3c-gate.json')
+          gate = json.loads(p.read_text())
+          gate['benchmark_timing_excluded_from_correctness_identity'] = False
+          p.write_text(json.dumps(gate, indent=2) + '\n')
+          PY
+          if python3 tools/validate_campaign.py /tmp/igm-campaign-tampered; then
+            echo 'expected semantic Phase 3C gate tamper rejection' >&2
+            exit 1
+          fi
       - name: Phase 3C rejected campaign is preserved
         run: |
-          rm -rf /tmp/igm-campaign-rejected
+          rm -rf /tmp/igm-campaign-rejected /tmp/igm-campaign-range-rejected
           if ./target/release/igm-campaign run --start 100 --count 31 --workers 2 --budget-bytes 1 --verify-samples 17 --out /tmp/igm-campaign-rejected; then
             echo 'expected bounded memory rejection' >&2
             exit 1
           fi
           python3 tools/validate_campaign.py /tmp/igm-campaign-rejected
+          if ./target/release/igm-campaign run --start 999999 --workers 2 --budget-bytes 1024 --verify-samples 17 --out /tmp/igm-campaign-range-rejected; then
+            echo 'expected range rejection' >&2
+            exit 1
+          fi
+          python3 tools/validate_campaign.py /tmp/igm-campaign-range-rejected
           python3 - <<'PY'
           import json
-          rejected = json.load(open('/tmp/igm-campaign-rejected/rejected.json', encoding='utf-8'))
-          assert rejected['preserved'] is True
-          assert rejected['biological_validity_claimed'] is False
-          assert rejected['stage'] == 'campaign-execution'
-          print('OK: Phase 3C rejected-run preservation')
+          memory = json.load(open('/tmp/igm-campaign-rejected/rejected.json', encoding='utf-8'))
+          ranged = json.load(open('/tmp/igm-campaign-range-rejected/rejected.json', encoding='utf-8'))
+          assert memory['preserved'] is True and memory['biological_validity_claimed'] is False
+          assert memory['stage'] == 'phase3c-gate'
+          assert ranged['stage'] == 'range-admission'
+          print('OK: Phase 3C rejected-run preservation covers gate and range admission')
           PY
