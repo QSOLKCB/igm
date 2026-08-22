@@ -1,0 +1,60 @@
+name: Deploy IGM visual laboratory
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "site/**"
+      - "profiles/**"
+      - "research/**"
+      - "governance/**"
+      - "tools/build_site_data.py"
+      - "tools/validate_site.py"
+      - "tools/validate_profile.py"
+      - "tests/site-model.mjs"
+      - ".github/workflows/pages.yml"
+      - ".github/workflows/viz-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Validate governance and profile
+        run: |
+          python3 tools/validate_docs.py
+          python3 tools/validate_profile.py --self-test
+          python3 tools/validate_profile.py profiles/igm-schematic-pentamer-v0.json
+          python3 tools/validate_site.py
+          node tests/site-model.mjs
+      - name: Build deterministic static data
+        run: python3 tools/build_site_data.py
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-24.04
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
