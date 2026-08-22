@@ -8,6 +8,7 @@ on:
     paths:
       - "site/**"
       - "profiles/**"
+      - "schemas/**"
       - "tests/site-model.mjs"
       - "tools/build_site_data.py"
       - "tools/validate_site.py"
@@ -25,6 +26,7 @@ on:
     paths:
       - "site/**"
       - "profiles/**"
+      - "schemas/**"
       - "tests/site-model.mjs"
       - "tools/build_site_data.py"
       - "tools/validate_site.py"
@@ -50,6 +52,7 @@ jobs:
         run: |
           python3 tools/validate_docs.py
           python3 tools/validate_profile.py --self-test
+          python3 tools/validate_json_schema.py --self-test
       - name: Validate V0 profile schema and semantics
         run: |
           python3 tools/validate_json_schema.py profiles/igm-schematic-pentamer-v0.json
