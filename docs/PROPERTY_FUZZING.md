@@ -4,7 +4,7 @@ Status: deterministic implementation testing for the schematic V0 runtime.
 
 > **INV-BIO-001: Perfect Mathematics Does Not Equal Perfect Biological Reality.**
 
-The Phase 3A property-fuzz harness expands test coverage beyond hand-picked deterministic edge cases. It generates many bounded inputs from an explicit reproducible seed and checks invariants that should hold across whole input classes.
+The Phase 3A property-fuzz harness expands test coverage beyond hand-picked deterministic edge cases. The property-based fuzzing contract generates many bounded inputs from an explicit reproducible seed and checks invariants that should hold across whole input classes.
 
 This is **not** biological validation. Rust/Pages agreement, randomized property coverage, deterministic replay, and failure shrinking-by-seed all remain implementation evidence for the schematic fixture only.
 
