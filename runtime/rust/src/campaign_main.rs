@@ -171,13 +171,34 @@ fn command_run(args: &[String]) -> Result<(), RuntimeError> {
         Ok(engine) => engine,
         Err(error) => return Err(preserve_rejection(&parsed.out, "engine-admission", &error)),
     };
+
+    if parsed.start >= engine.total_conformations() {
+        let error = RuntimeError(format!(
+            "--start {} is outside execution domain [0,{})",
+            parsed.start,
+            engine.total_conformations()
+        ));
+        return Err(preserve_rejection(&parsed.out, "range-admission", &error));
+    }
+
     let count = match parsed.count {
         Some(value) => value,
-        None => engine
-            .total_conformations()
-            .checked_sub(parsed.start)
-            .ok_or_else(|| RuntimeError("--start exceeds execution domain".into()))?,
+        None => engine.total_conformations() - parsed.start,
     };
+    let end_exclusive = match parsed.start.checked_add(count) {
+        Some(value) if count > 0 && value <= engine.total_conformations() => value,
+        _ => {
+            let error = RuntimeError(format!(
+                "campaign range start={} count={} exceeds execution domain [0,{})",
+                parsed.start,
+                count,
+                engine.total_conformations()
+            ));
+            return Err(preserve_rejection(&parsed.out, "range-admission", &error));
+        }
+    };
+    debug_assert!(end_exclusive > parsed.start);
+
     let config = CampaignConfig {
         start: parsed.start,
         count,
