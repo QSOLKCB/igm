@@ -58,11 +58,12 @@ Read:
 
 before changing model semantics, data handling, medical language, or validation status.
 
-For runtime scheduling, memory-layout, campaign, or accelerator changes also read:
+For runtime scheduling, memory-layout, campaign, accelerator, or property-fuzz changes also read:
 
 - `docs/RUST_RUNTIME.md`
 - `docs/PENTA_CRT_CPU.md`
 - `docs/EXECUTION_CAMPAIGNS.md`
+- `docs/PROPERTY_FUZZING.md`
 - `docs/RUNTIME_LINEAGE.md`
 
 ## Prohibited claims
@@ -111,6 +112,19 @@ Future runtimes, Pages tools, and accelerator paths must reject a profile that f
 - Worker count, chunk count, and memory budget may affect the manifest/benchmark but must not silently alter a worker/chunk-independent correctness result for the same admitted numerical profile and conformation slice.
 - Rejected campaigns should be preserved with their failure reason and must not be relabelled as accepted evidence.
 - Environment receipts must omit hostname, username, raw GPU UUIDs, serial numbers, MAC addresses, and similar machine identifiers by default.
+
+## Property-based fuzzing
+
+`IGM-PROPERTY-FUZZ-V1` is implementation testing for Phase 3A. It must remain reproducible, bounded, and scientifically non-promoting.
+
+- Generated cases must come from an explicit replayable seed.
+- CI must pin the seed and case count.
+- Local seed overrides are allowed for exploration, but a discovered failing seed must be preserved when converted into a regression test.
+- Generated domains must remain bounded so fuzzing cannot become an accidental unbounded campaign.
+- Property failures should report the seed and case index needed for reproduction.
+- Fuzzing may test address bijections, partition coverage, numerical invariants, bounded transforms, fail-closed inputs, and worker-independent correctness.
+- Random generators, fuzz seeds, and case order must never enter scientific/model identity unless a future stochastic model explicitly declares that contract.
+- Property-fuzz success is computational evidence only. It cannot create a source-informed model, molecular-dynamics result, biological validity, clinical validity, or validation-level promotion.
 
 ## Validation
 
@@ -161,6 +175,15 @@ PRs must pass:
 ```bash
 python3 tools/validate_docs.py
 python3 tools/validate_profile.py --self-test
+cargo test --locked --all-targets
+```
+
+Phase 3A runtime/property-fuzz changes must additionally run the replayable generated-property harness:
+
+```bash
+IGM_PROPERTY_FUZZ_SEED=0x49474d50524f5037 \
+IGM_PROPERTY_FUZZ_CASES=2048 \
+cargo test --locked --test property_fuzz -- --nocapture
 ```
 
 Phase 3C campaign changes must additionally exercise and validate an accepted campaign directory with:
