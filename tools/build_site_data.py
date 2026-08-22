@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Build deterministic local data for the static IGM Pages visual laboratory."""
+"""Build deterministic local data for the static IGM Pages visual laboratory.
+
+The builder is a fail-closed packaging boundary: it validates the source profile
+against both the repository JSON Schema subset and the semantic profile gate
+before any profile bytes are copied into the deployable Pages artifact.
+"""
 
 from __future__ import annotations
 
@@ -7,11 +12,20 @@ import hashlib
 import json
 from pathlib import Path
 
+from validate_json_schema import (
+    ValidationError as SchemaValidationError,
+    audit_schema,
+    load as load_schema_json,
+    validate as validate_schema,
+)
+from validate_profile import ProfileError, validate_profile
+
 ROOT = Path(__file__).resolve().parents[1]
 SITE = ROOT / "site"
 DATA = SITE / "data"
 PROFILE = ROOT / "profiles" / "igm-schematic-pentamer-v0.json"
 SOURCES = ROOT / "research" / "sources.json"
+SCHEMA = ROOT / "schemas" / "model-profile.schema.json"
 
 
 def reject_constant(value: str) -> None:
@@ -23,7 +37,9 @@ def load(path: Path):
 
 
 def canonical_bytes(value) -> bytes:
-    return (json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode("utf-8")
+    return (
+        json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n"
+    ).encode("utf-8")
 
 
 def sha256(path: Path) -> str:
@@ -34,10 +50,22 @@ def sha256(path: Path) -> str:
     return h.hexdigest()
 
 
+def validate_source_profile(profile) -> None:
+    try:
+        schema = load_schema_json(SCHEMA)
+        audit_schema(schema)
+        validate_schema(profile, schema, schema)
+        validate_profile(profile)
+    except (SchemaValidationError, ProfileError) as exc:
+        raise SystemExit(f"FAIL: refusing to package invalid Pages profile: {exc}") from exc
+
+
 def main() -> int:
-    DATA.mkdir(parents=True, exist_ok=True)
     profile = load(PROFILE)
+    validate_source_profile(profile)
     sources = load(SOURCES)
+
+    DATA.mkdir(parents=True, exist_ok=True)
     (DATA / "profile.json").write_bytes(canonical_bytes(profile))
     (DATA / "sources.json").write_bytes(canonical_bytes(sources))
 
@@ -46,7 +74,9 @@ def main() -> int:
         if not path.is_file() or path.name == "manifest.json":
             continue
         rel = path.relative_to(SITE).as_posix()
-        manifest_entries.append({"path": rel, "sha256": sha256(path), "bytes": path.stat().st_size})
+        manifest_entries.append(
+            {"path": rel, "sha256": sha256(path), "bytes": path.stat().st_size}
+        )
     manifest = {
         "schema": "igm-pages-manifest/1",
         "profile": profile["model_id"],
