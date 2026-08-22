@@ -10,6 +10,7 @@ future native or accelerator runtime.
 from __future__ import annotations
 
 import json
+import math
 import re
 import sys
 from pathlib import Path
@@ -46,6 +47,42 @@ def load_json(path: Path) -> Any:
         )
     except (OSError, json.JSONDecodeError, ProfileError) as exc:
         raise ProfileError(f"{path}: {exc}") from exc
+
+
+def is_finite_number(value: Any) -> bool:
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+    )
+
+
+def validate_parameter_bounds(parameter: dict[str, Any], index: int) -> None:
+    has_lower = "lower_bound" in parameter and parameter["lower_bound"] is not None
+    has_upper = "upper_bound" in parameter and parameter["upper_bound"] is not None
+    if not (has_lower or has_upper):
+        if "value" in parameter and isinstance(parameter["value"], float) and not math.isfinite(parameter["value"]):
+            raise ProfileError(f"parameter[{index}] value must be finite")
+        return
+
+    if "value" not in parameter or not is_finite_number(parameter["value"]):
+        raise ProfileError(
+            f"parameter[{index}] declares numeric bounds and therefore requires a finite numeric value"
+        )
+    value = parameter["value"]
+
+    lower = parameter.get("lower_bound")
+    upper = parameter.get("upper_bound")
+    if has_lower and not is_finite_number(lower):
+        raise ProfileError(f"parameter[{index}] lower_bound must be finite numeric")
+    if has_upper and not is_finite_number(upper):
+        raise ProfileError(f"parameter[{index}] upper_bound must be finite numeric")
+    if has_lower and has_upper and lower > upper:
+        raise ProfileError(f"parameter[{index}] lower_bound exceeds upper_bound")
+    if has_lower and value < lower:
+        raise ProfileError(f"parameter[{index}] value is below lower_bound")
+    if has_upper and value > upper:
+        raise ProfileError(f"parameter[{index}] value is above upper_bound")
 
 
 def validate_profile(profile: Any) -> None:
@@ -102,6 +139,7 @@ def validate_profile(profile: Any) -> None:
             raise ProfileError("observed parameters require derivation=direct")
         if status == "calibrated" and parameter.get("derivation") != "calibrated":
             raise ProfileError("calibrated parameters require derivation=calibrated")
+        validate_parameter_bounds(parameter, index)
 
     claims = profile.get("claims")
     if not isinstance(claims, dict):
@@ -160,6 +198,30 @@ def self_test() -> None:
         {"name": "source-backed", "status": "source-derived", "value": 1.0}
     ]
     probes.append(("source-derived without provenance", missing_provenance))
+
+    out_of_bounds = json.loads(json.dumps(base))
+    out_of_bounds["parameters"] = [
+        {
+            "name": "bounded",
+            "status": "assumed",
+            "value": 12.0,
+            "lower_bound": 0.0,
+            "upper_bound": 10.0,
+        }
+    ]
+    probes.append(("out-of-bounds parameter", out_of_bounds))
+
+    nonnumeric_bounded = json.loads(json.dumps(base))
+    nonnumeric_bounded["parameters"] = [
+        {
+            "name": "bounded",
+            "status": "assumed",
+            "value": False,
+            "lower_bound": 0.0,
+            "upper_bound": 10.0,
+        }
+    ]
+    probes.append(("nonnumeric bounded parameter", nonnumeric_bounded))
 
     for label, probe in probes:
         try:
