@@ -1,14 +1,14 @@
 # Pre-Phase 5 Readiness Audit
 
-Status: **Phase 1 through Phase 3 complete after the Phase 3B timing benchmark; Phase 5 remains blocked on Phase 4.**
+Status: **READY_ON_PHASE4_MERGE**.
 
 > **INV-BIO-001: Perfect Mathematics Does Not Equal Perfect Biological Reality.**
 >
 > **INV-RUNTIME-001: Execution Adjacency Does Not Imply Biological Adjacency.**
 
-This audit exists to stop the project from accidentally treating an old unchecked box, stale status line, or runtime optimization as permission to skip the evidence-adapter layer.
+This audit exists to stop the project from treating runtime correctness, source ingestion, or representational convenience as scientific authority.
 
-## Completed foundation before Phase 4
+## Completed foundation
 
 The repository now has:
 
@@ -16,40 +16,42 @@ The repository now has:
 - Phase 2 deterministic Pages visual laboratory and cross-view invariants;
 - Phase 3A Rust structural reference, browser parity, deterministic CRT traversal, bounded parallelism, worker-independent identity, and seeded property-based fuzzing;
 - Phase 3B explicit synthetic execution state space, PENTA-CRT optimization, LUT geometry, squared-distance hot loop, structured XY reuse with exact Z residual corrections, sparse J correction, fixed `1e-12` residual gate, and dedicated scalar/reference-vs-optimized timing benchmark;
-- Phase 3C execution graph, 30+2 memory layout, bounded chunk campaigns, accepted/rejected receipts, immutable accepted-campaign handles, explicit acceptance gate, and benchmark/correctness identity separation.
+- Phase 3C execution graph, 30+2 memory layout, bounded chunk campaigns, accepted/rejected receipts, immutable accepted-campaign handles, explicit acceptance gate, and benchmark/correctness identity separation;
+- Phase 4 replaceable source adapters, structural-source registry validation, explicit uncertainty/provenance requirements, conflict/unknown preservation, source snapshot policy, and V0 constant non-inheritance rules.
 
-The pre-Phase 5 audit found no additional unchecked Phase 1-3 implementation item after the timing benchmark was added.
+## Phase 4 gate now implemented
 
-## Phase 4 is not optional
+Phase 4 adds an executable evidence-ingestion boundary rather than a documentation promise.
 
-Phase 5 must **not** begin by pretending Phase 4 has already happened.
+The gate requires:
 
-The following Phase 4 work remains intentionally open:
+1. a registered source with stable identity;
+2. adapter/source-class compatibility;
+3. preserved source access and redistribution metadata;
+4. an input support statement that exactly matches a registered `supports` statement;
+5. explicit evidence uncertainty;
+6. adapter-derived evidence status from the declared transformation;
+7. source snapshot mode that satisfies the repository snapshot policy;
+8. no validation-level, biological-validity, or clinical-validity promotion;
+9. conflict/unknown preservation instead of automatic reconciliation.
 
-1. define the replaceable source-adapter interface;
-2. maintain structural-source identifiers such as DOI/PDB/EMDB in the public source registry;
-3. add a cryo-EM parameter adapter;
-4. add a molecular-dynamics trajectory adapter;
-5. add a biochemical/calibration constraint adapter;
-6. preserve source licence/access metadata through adapters;
-7. require per-parameter provenance and uncertainty;
-8. preserve conflict and unknown states rather than forcing reconciliation;
-9. snapshot/hash source material only where reuse terms permit;
-10. externalize V0 implementation constants if they become biologically meaningful in a source-informed profile.
+The normative Phase 4 rule remains:
 
-These are scientific-evidence plumbing tasks, not runtime cleanup. They deserve their own reviewable implementation rather than being smuggled into a tensor/graph PR.
+> **Source ingestion must not silently convert observations into stronger claims than the source supports.**
 
-## Phase 5 readiness rule
+See `docs/EVIDENCE_ADAPTERS.md`.
 
-Phase 5 status is therefore:
+## Phase 5 readiness state
+
+On this PR branch, Phase 5 status is:
 
 ```text
-BLOCKED_ON_PHASE4
+READY_ON_PHASE4_MERGE
 ```
 
-Phase 5 may begin only after the Phase 4 gate is executable enough to prevent source ingestion from silently strengthening claims beyond what the source supports.
+This is intentionally not `READY_ON_MAIN` until the Phase 4 PR is reviewed and merged.
 
-At minimum, a Phase 5 representation must be able to distinguish:
+After merge, Phase 5 may begin because the evidence/provenance boundary it depends on will exist in code, schemas, tests, and CI. Phase 5 must continue to distinguish:
 
 ```text
 source observation
@@ -62,11 +64,25 @@ validation level
 
 without collapsing those categories.
 
+## What readiness does not mean
+
+Phase 4 readiness does **not** mean that IGM now has a validated source-informed IgM model. That remains later work.
+
+In particular, Phase 4 does not:
+
+- create a V1 biological profile;
+- claim that the cryo-EM ingestion fixture is a complete IgM model;
+- turn MD or biochemical adapter unit tests into biological evidence;
+- calibrate the legacy V0 drawing constants;
+- establish molecular-dynamics realism;
+- promote V0 to V1/V2/V3/V4;
+- create clinical meaning.
+
+The first actual structure-informed model remains a separate source/model-validation task.
+
 ## Performance readiness
 
-The Phase 3B timing benchmark closes the final pre-Phase 4 runtime-performance checklist item, but it does not create a performance claim.
-
-A benchmark receipt records local timing observations with:
+The Phase 3B timing benchmark remains observation-only:
 
 ```text
 speedup_claimed = false
@@ -75,10 +91,10 @@ benchmark_timing_identity_bearing = false
 correctness_identity_includes_timing = false
 ```
 
-Hosted CI checks the benchmark contract and bounded execution. It does not require the optimized path to be faster on a shared runner.
+A faster ingestion or runtime path cannot increase evidence strength.
 
 ## Decision
 
-The next substantive scientific architecture PR should be **Phase 4**, not Phase 5.
+If this Phase 4 PR merges with its source/adaptation CI green, the project may proceed to Phase 5 representation work.
 
-Once Phase 4 is complete, this audit should be updated from `BLOCKED_ON_PHASE4` to an explicit Phase 5-ready state only if its source/provenance gate is actually enforced in code and tests.
+Phase 5 must consume the new evidence contracts rather than bypass them.
