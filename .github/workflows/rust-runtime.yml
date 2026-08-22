@@ -16,12 +16,14 @@ on:
       - "tools/validate_json_schema.py"
       - "tools/validate_campaign.py"
       - "tools/validate_campaign_v2.py"
+      - "tests/property_fuzz.rs"
       - "tests/site-model.mjs"
       - "site/igm-model.mjs"
       - "docs/RUST_RUNTIME.md"
       - "docs/RUNTIME_LINEAGE.md"
       - "docs/PENTA_CRT_CPU.md"
       - "docs/EXECUTION_CAMPAIGNS.md"
+      - "docs/PROPERTY_FUZZING.md"
       - "ROADMAP.md"
       - ".github/workflows/rust-runtime.yml"
   pull_request:
@@ -38,12 +40,14 @@ on:
       - "tools/validate_json_schema.py"
       - "tools/validate_campaign.py"
       - "tools/validate_campaign_v2.py"
+      - "tests/property_fuzz.rs"
       - "tests/site-model.mjs"
       - "site/igm-model.mjs"
       - "docs/RUST_RUNTIME.md"
       - "docs/RUNTIME_LINEAGE.md"
       - "docs/PENTA_CRT_CPU.md"
       - "docs/EXECUTION_CAMPAIGNS.md"
+      - "docs/PROPERTY_FUZZING.md"
       - "ROADMAP.md"
       - ".github/workflows/rust-runtime.yml"
 
@@ -76,6 +80,11 @@ jobs:
         run: node tests/site-model.mjs
       - name: Rust tests
         run: cargo test --locked --all-targets
+      - name: Phase 3A property fuzzing
+        env:
+          IGM_PROPERTY_FUZZ_SEED: "0x49474d50524f5037"
+          IGM_PROPERTY_FUZZ_CASES: "2048"
+        run: cargo test --locked --test property_fuzz -- --nocapture
       - name: Release build
         run: cargo build --locked --release
       - name: Runtime profile admission
