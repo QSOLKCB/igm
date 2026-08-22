@@ -294,28 +294,42 @@ An accepted campaign must preserve the profile/algorithm identities, pass the Ph
 
 ## Pre-Phase 5 readiness audit
 
-Status: **BLOCKED_ON_PHASE4**.
+Status: **READY_ON_PHASE4_MERGE**.
 
-After PR #8 there are no remaining unchecked Phase 1-3 implementation items. The runtime/performance foundation is complete enough to stop being the reason Phase 5 is delayed.
-
-Phase 4 is still a substantive evidence/provenance architecture phase and must not be skipped. See `docs/PRE_PHASE5_READINESS.md`.
+Phase 1 through Phase 3 are complete, and the Phase 4 source/provenance gate is implemented on PR #9. Phase 5 becomes eligible only after that PR is reviewed and merged. See `docs/PRE_PHASE5_READINESS.md`.
 
 ---
 
 ## Phase 4 — Replaceable evidence adapters
 
-Status: **next required phase; hard blocker for Phase 5**.
+**Target: PR #9.**
 
-- [ ] Define source-adapter interface.
-- [ ] Maintain public structural-source registry with DOI/PDB/EMDB identifiers.
-- [ ] Add cryo-EM parameter adapter.
-- [ ] Add molecular-dynamics trajectory adapter.
-- [ ] Add biochemical/calibration constraint adapter.
-- [ ] Preserve source licence/access metadata.
-- [ ] Require per-parameter provenance and uncertainty.
-- [ ] Add conflict/unknown representation rather than forced reconciliation.
-- [ ] Add source snapshots/hashes only where reuse terms permit.
-- [ ] Externalize any remaining V0 implementation constants that become biologically meaningful in source-informed profiles.
+Status: **implemented in PR #9, pending review/merge**.
+
+- [x] Define source-adapter interface.
+- [x] Maintain public structural-source registry with DOI/PDB/EMDB identifiers.
+- [x] Add cryo-EM parameter adapter.
+- [x] Add molecular-dynamics trajectory adapter.
+- [x] Add biochemical/calibration constraint adapter.
+- [x] Preserve source licence/access metadata.
+- [x] Require per-parameter provenance and uncertainty.
+- [x] Add conflict/unknown representation rather than forced reconciliation.
+- [x] Add source snapshots/hashes only where reuse terms permit.
+- [x] Externalize any remaining V0 implementation constants that become biologically meaningful in source-informed profiles.
+
+Phase 4 contracts:
+
+```text
+IGM-SOURCE-ADAPTER-V1
+IGM-CRYO-EM-PARAMETER-ADAPTER-V1
+IGM-MD-TRAJECTORY-ADAPTER-V1
+IGM-BIOCHEMICAL-CALIBRATION-ADAPTER-V1
+IGM-PHASE4-EVIDENCE-BUNDLE-V1
+IGM-SOURCE-SNAPSHOT-POLICY-V1
+IGM-V0-IMPLEMENTATION-CONSTANTS-V1
+```
+
+The adapters preserve registered support/limitation statements, source access/reuse metadata, explicit uncertainty, and conflict/unknown states. They do not perform automatic reconciliation or validation-level promotion. See `docs/EVIDENCE_ADAPTERS.md`.
 
 ### Phase 4 gate
 
@@ -325,7 +339,7 @@ Source ingestion must not silently convert observations into stronger claims tha
 
 ## Phase 5 — Tensor, graph, and ensemble computational representations
 
-**Entry condition: Phase 4 gate implemented and pre-Phase 5 audit updated from `BLOCKED_ON_PHASE4`.**
+**Entry condition: PR #9 merged with the Phase 4 gate and source-adapter CI green.**
 
 - [ ] Define explicit numerical-array projections of model state.
 - [ ] Define true tensor types only where transformation semantics are declared.
