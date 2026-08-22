@@ -260,12 +260,15 @@ function render() {
 }
 
 function renderTelemetry() {
+  const boundsStatus = state.validation?.finiteAndBoundsPassed === true
+    ? `PASS (${state.validation.boundedParameterCount} bounded parameters checked)`
+    : "FAIL";
   const rows = [
     ["Profile", state.modelId], ["Version", state.modelVersion], ["Validation", `${state.validationLevel} · SCHEMATIC`],
     ["Clinical status", "NOT CLINICAL"], ["Profile hash", state.profileFingerprint], ["State hash", state.stateFingerprint],
     ["Components", state.components.length], ["Relations", state.relationships.length], ["Hyperedges", state.hyperedges.length],
     ["Logical ensemble", state.sampling.logical.toLocaleString()], ["Evaluated", state.sampling.evaluated.toLocaleString()], ["Displayed", state.sampling.displayed.toLocaleString()],
-    ["Finite/bounds", "PASS"], ["Biological validity", "NOT CLAIMED"]
+    ["Finite/bounds", boundsStatus], ["Biological validity", "NOT CLAIMED"]
   ];
   telemetry.replaceChildren(...rows.flatMap(([k, v]) => [Object.assign(document.createElement("dt"), {textContent: k}), Object.assign(document.createElement("dd"), {textContent: String(v)})]));
 }
@@ -291,7 +294,12 @@ function renderParameters() {
 }
 
 function renderReferences() {
-  const wanted = new Set(["visualization.biofabric-longabaugh-2012", "visualization.biofabric-site", "math.lim-tensors-computations", "graph.koutrouli-2020", "graph.pagliarini-chicco-2026"]);
+  const wanted = new Set([
+    "visualization.biofabric-longabaugh-2012",
+    "math.lim-2021-tensors-computations",
+    "graph.koutrouli-2020-biological-network-era",
+    "graph.pagliarini-chicco-2026-nine-tips"
+  ]);
   const items = (sourceRegistry.sources ?? []).filter((s) => wanted.has(s.id));
   references.replaceChildren();
   for (const source of items) {
@@ -299,7 +307,13 @@ function renderReferences() {
     const a = document.createElement("a"); a.href = source.url; a.target = "_blank"; a.rel = "noreferrer"; a.textContent = source.title;
     div.append(a, document.createTextNode(` · ${source.class}`)); references.append(div);
   }
-  if (!items.length) references.textContent = "Method references are registered in research/sources.json.";
+  const found = new Set(items.map((item) => item.id));
+  const missing = [...wanted].filter((id) => !found.has(id));
+  if (missing.length) {
+    const warning = document.createElement("div");
+    warning.textContent = `Missing registered method references: ${missing.join(", ")}`;
+    references.append(warning);
+  }
 }
 
 function escapeHtml(value) {
@@ -316,11 +330,24 @@ function canonicalStateExport() {
   return {...cloneForExport(state), export_notice: `V0 · NOT CLINICAL · ${INV_BIO_001}`};
 }
 
+function csvCell(value) {
+  const text = String(value ?? "");
+  return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+}
+
 function exportCsv() {
   const matrix = state.numericalArrays.pairwiseDistance;
-  const rows = ["source,target,distance_model_unit"];
-  matrix.componentOrder.forEach((source, i) => matrix.componentOrder.forEach((target, j) => rows.push(`${source},${target},${matrix.values[i][j].toPrecision(12)}`)));
-  rows.push(`# V0 NOT CLINICAL; ${INV_BIO_001}`);
+  const rows = ["record_type,source,target,distance_model_unit,notice"];
+  matrix.componentOrder.forEach((source, i) => matrix.componentOrder.forEach((target, j) => {
+    rows.push([
+      "observation",
+      source,
+      target,
+      matrix.values[i][j].toPrecision(12),
+      ""
+    ].map(csvCell).join(","));
+  }));
+  rows.push(["metadata", "", "", "", `V0 · NOT CLINICAL · ${INV_BIO_001}`].map(csvCell).join(","));
   download("igm-v0-observables.csv", rows.join("\n"), "text/csv");
 }
 
