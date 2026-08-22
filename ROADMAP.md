@@ -56,9 +56,9 @@ The browser is a transparent research microscope, not biological authority and n
 
 ## Phase 3A — Minimal deterministic Rust structural runtime
 
-**Target: PR #3.**
+**Target: PR #3, property-fuzz follow-up in PR #7.**
 
-Status: **complete and merged in PR #3**.
+Status: **complete and merged in PR #3; generated property coverage added in PR #7**.
 
 ### Native contract and admission
 
@@ -109,7 +109,19 @@ Status: **complete and merged in PR #3**.
 - [x] Keep `performance_claim=false` in PR3 reports.
 - [x] Add `validate`, `geometry`, `address`, and `run` CLI commands.
 - [x] Add native CI.
-- [ ] Add property-based fuzzing beyond deterministic edge-case tests.
+- [x] Add property-based fuzzing beyond deterministic edge-case tests.
+
+Property-fuzz contract:
+
+```text
+IGM-PROPERTY-FUZZ-V1
+seeded + reproducible
+bounded generated domains
+no external fuzz dependency
+implementation evidence only
+```
+
+The generated properties cover CRT address round trips, partition coverage/balance, squared-distance invariants, cutoff equivalence, bounded articulation, fail-closed non-finite inputs, and worker-independent V0 structural result identity. See `docs/PROPERTY_FUZZING.md`.
 
 ### Phase 3A gate
 
@@ -187,9 +199,9 @@ Optimization profiles may be faster than the reference but cannot become authori
 
 ## Phase 3C — Execution graph, memory layout, and campaign receipts
 
-**Target: PR #5.**
+**Targets: PR #5 and explicit acceptance gate PR #6.**
 
-Status: **implemented in PR #5, pending review/merge**.
+Status: **complete and merged in PR #5; executable acceptance gate merged in PR #6**.
 
 ### Execution graph
 
@@ -239,6 +251,7 @@ This is a CPU-side future-accelerator layout contract. It is not a claim that CU
 - [x] Add external `SHA256SUMS` over persisted campaign artifacts.
 - [x] Add dependency-free campaign-directory validation.
 - [x] Test correctness identity across different worker counts and chunk/memory budgets.
+- [x] Add executable `IGM-PHASE3C-ACCEPTANCE-GATE-V1` and gate receipt.
 
 Accepted campaign artifacts:
 
@@ -250,6 +263,7 @@ memory-layout.json
 memory-plan.json
 environment.json
 chunks.json
+phase3c-gate.json
 campaign-manifest.json
 SHA256SUMS
 ```
