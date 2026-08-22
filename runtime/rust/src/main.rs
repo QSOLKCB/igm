@@ -2,8 +2,8 @@
 
 use igm_runtime::{
     browser_v0_reference, build_geometry, default_evaluated_count, load_profile,
-    logical_ensemble_size, run_structural_fixture, ExecutionAddress, RunConfig,
-    RuntimeError, EXECUTION_CELL_STATES, INV_BIO_001, RUNTIME_CONTRACT, VERSION,
+    run_structural_fixture, ExecutionAddress, RunConfig, RuntimeError,
+    EXECUTION_CELL_STATES, INV_BIO_001, NUMERICAL_PROFILE, RUNTIME_CONTRACT, VERSION,
 };
 use serde_json::json;
 use std::env;
@@ -20,7 +20,8 @@ commands:\n\
   run [PROFILE] [--work-items N] [--workers N]\n\n\
 PROFILE defaults to profiles/igm-schematic-pentamer-v0.json.\n\
 The validate, geometry, and run commands fail closed unless the repository\n\
-JSON-Schema and semantic profile gates can be located and pass.\n"
+JSON-Schema and semantic profile gates can be located and pass. The Rust\n\
+loader independently repeats the supported structural/semantic checks.\n"
 }
 
 fn default_profile() -> PathBuf {
@@ -83,18 +84,21 @@ fn validate_repository_contracts(profile: &Path) -> Result<(), RuntimeError> {
 fn command_validate(profile: &Path) -> Result<(), RuntimeError> {
     validate_repository_contracts(profile)?;
     let loaded = load_profile(profile)?;
-    let geometry = build_geometry(&loaded.profile)?;
+    let geometry = build_geometry(loaded.profile())?;
     let residual = geometry.max_pairwise_distance_residual(&browser_v0_reference())?;
+    let p = loaded.profile();
     println!(
         "{}",
         serde_json::to_string_pretty(&json!({
             "schema": "IGM-RUST-PROFILE-VALIDATION-V1",
             "runtime_contract": RUNTIME_CONTRACT,
             "runtime_version": VERSION,
-            "model_id": loaded.profile.model_id,
-            "model_version": loaded.profile.version,
-            "validation_level": loaded.profile.validation_level,
-            "profile_sha256": loaded.profile_sha256,
+            "numerical_profile": NUMERICAL_PROFILE,
+            "model_id": p.model_id,
+            "model_version": p.version,
+            "validation_level": p.validation_level,
+            "profile_sha256": loaded.profile_sha256(),
+            "source_registry_sha256": loaded.source_registry_sha256(),
             "component_count": geometry.nodes.len(),
             "browser_reference_max_component_residual": residual,
             "non_clinical": true,
@@ -109,16 +113,19 @@ fn command_validate(profile: &Path) -> Result<(), RuntimeError> {
 fn command_geometry(profile: &Path) -> Result<(), RuntimeError> {
     validate_repository_contracts(profile)?;
     let loaded = load_profile(profile)?;
-    let geometry = build_geometry(&loaded.profile)?;
+    let geometry = build_geometry(loaded.profile())?;
+    let p = loaded.profile();
     println!(
         "{}",
         serde_json::to_string_pretty(&json!({
             "schema": "IGM-RUST-GEOMETRY-V1",
             "runtime_contract": RUNTIME_CONTRACT,
-            "model_id": loaded.profile.model_id,
-            "model_version": loaded.profile.version,
-            "validation_level": loaded.profile.validation_level,
-            "profile_sha256": loaded.profile_sha256,
+            "numerical_profile": NUMERICAL_PROFILE,
+            "model_id": p.model_id,
+            "model_version": p.version,
+            "validation_level": p.validation_level,
+            "profile_sha256": loaded.profile_sha256(),
+            "source_registry_sha256": loaded.source_registry_sha256(),
             "jchain_participants": &geometry.jchain_participants,
             "nodes": &geometry.nodes,
             "notice": format!("V0 · NOT CLINICAL · {INV_BIO_001}")
@@ -197,15 +204,14 @@ fn command_run(args: &[String]) -> Result<(), RuntimeError> {
     let (profile_path, requested_work_items, requested_workers) = parse_run(args)?;
     validate_repository_contracts(&profile_path)?;
     let loaded = load_profile(&profile_path)?;
-    let logical = logical_ensemble_size(&loaded.profile)?;
-    let work_items = requested_work_items.unwrap_or(default_evaluated_count(&loaded.profile)?);
+    let work_items = requested_work_items.unwrap_or(default_evaluated_count(loaded.profile())?);
     let workers = requested_workers.unwrap_or_else(|| {
         std::thread::available_parallelism()
             .map(|n| n.get())
             .unwrap_or(1)
             .min(64)
     });
-    let config = RunConfig::new(work_items, workers, logical)?;
+    let config = RunConfig::new(work_items, workers)?;
     let started = Instant::now();
     let summary = run_structural_fixture(&loaded, config)?;
     let elapsed = started.elapsed().as_secs_f64();
