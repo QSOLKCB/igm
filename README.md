@@ -6,6 +6,23 @@ IGM is an open-source research software project for building deterministic, repl
 
 > **Important:** this repository is research software, not a medical device, diagnostic system, treatment tool, clinical decision-support system, or patient-specific predictor. It does not establish biological truth. Model outputs are hypotheses or computational observations whose biological interpretation belongs to appropriately qualified researchers and, where applicable, regulated research processes.
 
+## Core invariant
+
+> **Perfect Mathematics Does Not Equal Perfect Biological Reality.**
+
+This is hard-coded as `INV-BIO-001` across the project governance and agent contracts. Mathematical exactness, deterministic execution, numerical convergence, reproducibility, CPU/GPU agreement, and accelerator performance cannot by themselves establish biological or clinical validity.
+
+The project preserves:
+
+```text
+mathematical correctness
+    != computational correctness
+    != biological validity
+    != clinical validity
+```
+
+See [Core Invariants](docs/CORE_INVARIANTS.md).
+
 ## Why this repository exists
 
 IgM is structurally interesting because experimentally observed assemblies can involve multimeric organization, flexible antibody arms, asymmetric constraints, and large conformational state spaces. Those properties are computationally suitable for deterministic CPU/GPU exploration, provided the software does not confuse a convenient mathematical representation with biology.
@@ -51,7 +68,7 @@ This repository MUST NOT be used to claim that it:
 - substitutes for wet-lab, structural-biology, clinical, ethics, regulatory, or statistical validation;
 - is approved, endorsed, sponsored, or clinically validated by Flinders University, SA Health, the TGA, NHMRC, or any other institution unless that body explicitly says so.
 
-See [Medical and Research Boundary](docs/MEDICAL_RESEARCH_BOUNDARY.md).
+See [Medical and Research Boundary](docs/MEDICAL_RESEARCH_BOUNDARY.md) and [Disclaimer](DISCLAIMER.md).
 
 ## Australian research-ethics foundation
 
@@ -137,7 +154,10 @@ See [Flinders Research Handoff](docs/FLINDERS_RESEARCH_HANDOFF.md).
 README.md                         human overview
 README4AI.md                      machine-oriented project contract
 AGENTS.md                         mandatory agent rules
+DISCLAIMER.md                     research/medical/legal-context disclaimer
+CONTRIBUTING.md                   contribution and provenance rules
 ROADMAP.md                        staged implementation plan
+docs/CORE_INVARIANTS.md           non-promotable scientific invariants
 docs/ARCHITECTURE.md              replaceable model/runtime architecture
 docs/MEDICAL_RESEARCH_BOUNDARY.md non-clinical intended-use boundary
 docs/AUSTRALIAN_ETHICS_AND_REGULATORY.md Australian governance baseline
@@ -146,7 +166,7 @@ docs/VALIDATION_LADDER.md         computational vs biological validation
 docs/FLINDERS_RESEARCH_HANDOFF.md institutional handoff notes
 governance/policy.json            machine-readable safety/governance contract
 schemas/model-profile.schema.json future model-profile schema
-research/sources.json             authoritative governance/source registry
+research/sources.json             structural/governance source registry
 tools/validate_docs.py            deterministic documentation checks
 ```
 
