@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/QSOLKCB/igm/schemas/evidence-bundle.schema.json",
+  "title": "IGM Evidence Bundle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "bundle_contract",
+    "target",
+    "state",
+    "candidates",
+    "reconciliation_performed",
+    "claim_strengthening_detected",
+    "validation_level_promoted_by_adapter",
+    "biological_validity_claimed",
+    "clinical_validity_claimed",
+    "bundle_sha256"
+  ],
+  "properties": {
+    "schema": {"const": "IGM-EVIDENCE-BUNDLE-V1"},
+    "bundle_contract": {"const": "IGM-PHASE4-EVIDENCE-BUNDLE-V1"},
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": {"enum": ["parameter", "constraint"]},
+        "id": {"type": "string", "minLength": 1}
+      }
+    },
+    "state": {"enum": ["single", "concordant", "conflict", "unknown"]},
+    "candidates": {"type": "array", "minItems": 1, "items": {"type": "object"}},
+    "resolved_value": {},
+    "reconciliation_performed": {"const": false},
+    "claim_strengthening_detected": {"const": false},
+    "validation_level_promoted_by_adapter": {"const": false},
+    "biological_validity_claimed": {"const": false},
+    "clinical_validity_claimed": {"const": false},
+    "bundle_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}
