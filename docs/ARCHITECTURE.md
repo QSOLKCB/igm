@@ -16,14 +16,14 @@ IGM therefore separates **evidence**, **model assumptions**, **execution**, and 
                               |
                               v
 +-----------------------------------------------------------+
-| Source adapters                                             |
-| parse -> identify -> normalize -> preserve uncertainty      |
+| Source adapters                                            |
+| parse -> identify -> normalize -> preserve uncertainty    |
 +-----------------------------+-----------------------------+
                               |
                               v
 +-----------------------------------------------------------+
-| Versioned model profile                                    |
-| components | coordinates | bounds | constraints | sources  |
+| Versioned model profile                                   |
+| components | coordinates | bounds | constraints | sources |
 +-----------------------------+-----------------------------+
                               |
                  +------------+-------------+
@@ -36,21 +36,33 @@ IGM therefore separates **evidence**, **model assumptions**, **execution**, and 
                  |
                  v
 +-----------------------------------------------------------+
-| Accelerator adapters                                       |
-| CUDA / future GPU backends                                 |
-| validated against reference, never scientific authority    |
+| Deterministic optimization/runtime layer                  |
+| PENTA-CRT | exact indexing | bounded scheduling | receipts |
 +-----------------------------+-----------------------------+
                               |
                               v
 +-----------------------------------------------------------+
-| Observables and ensembles                                  |
-| distances | accessibility | contacts | steric rejects      |
+| Campaign/orchestration layer                              |
+| execution graph | memory plan | chunks | accepted/rejected |
 +-----------------------------+-----------------------------+
                               |
                               v
 +-----------------------------------------------------------+
-| Evidence package                                           |
-| inputs | versions | provenance | tolerances | results       |
+| Accelerator adapters                                      |
+| CUDA / future GPU backends                                |
+| validated against reference, never scientific authority   |
++-----------------------------+-----------------------------+
+                              |
+                              v
++-----------------------------------------------------------+
+| Observables and ensembles                                 |
+| distances | accessibility | contacts | steric rejects     |
++-----------------------------+-----------------------------+
+                              |
+                              v
++-----------------------------------------------------------+
+| Evidence package                                          |
+| inputs | versions | provenance | tolerances | results      |
 +-----------------------------------------------------------+
 ```
 
@@ -106,7 +118,7 @@ A tensor is an execution representation, not a claim about molecular ontology.
 
 ### Graph projection
 
-A graph can encode:
+A model graph can encode:
 
 - components/domains as nodes;
 - structural connections as edges;
@@ -115,6 +127,22 @@ A graph can encode:
 - constraint dependencies.
 
 Observed and hypothesised edges must be distinguishable.
+
+### Execution graph
+
+The Phase 3C scheduling graph is a different object:
+
+```text
+G_exec = C5 □ K2 □ C3
+```
+
+It maps the exact 30-state CRT execution cell and exists for traversal, locality, memory layout, and future accelerator scheduling.
+
+`INV-RUNTIME-001` is normative:
+
+> **Execution Adjacency Does Not Imply Biological Adjacency.**
+
+The architecture therefore keeps model graphs, execution graphs, provenance graphs, visualization graphs, and future tensor-factor graphs separately named and separately versioned.
 
 ### Vortex-inspired coordinate adapter
 
@@ -128,7 +156,7 @@ This adapter should remain optional and replaceable.
 
 ## Runtime principles
 
-The planned Rust reference runtime should prefer:
+The Rust reference/runtime layer prefers:
 
 - integer identities and indices;
 - bounded numeric domains;
@@ -139,6 +167,48 @@ The planned Rust reference runtime should prefer:
 - no hidden dependence on GPU scheduling order;
 - stable error taxonomy;
 - fail-closed provenance validation.
+
+Current native contracts include:
+
+```text
+IGM-RUST-RUNTIME-V1
+IGM-CRT-PENTAFOLD-30-V1
+IGM-PENTA-CRT-CPU-V1
+IGM-EXEC-CAMPAIGN-V1
+```
+
+## Campaign layer
+
+Phase 3C adds a runtime/orchestration boundary between the optimized CPU engine and future accelerators.
+
+It provides:
+
+- an exact execution graph and traversal receipt;
+- a 32-lane aligned memory-layout contract with 30 meaningful and two non-semantic padding lanes;
+- pre-execution memory-budget planning;
+- deterministic contiguous chunk streaming;
+- worker/chunk-independent correctness identity;
+- worker/chunk/memory-plan manifest identity;
+- separate correctness and benchmark receipts;
+- privacy-safe environment provenance;
+- accepted and rejected campaign preservation;
+- external artifact checksums.
+
+Changing memory budget or worker count may change a manifest and benchmark observation but must not change the declared correctness result for the same admitted model, algorithm, numerical profile, and conformation slice.
+
+## GPU-shaped memory is not GPU authority
+
+`IGM-WARP32-AOSOA-V1` deliberately shapes one execution cell around 32 lanes:
+
+```text
+30 meaningful execution addresses
++ 2 inactive padding lanes
+= 32 runtime lanes
+```
+
+The two padding lanes are excluded from scientific/model counts. Their existence is a memory/scheduling choice only.
+
+This contract is useful preparation for CUDA or SIMD, but its presence does not establish that a GPU has executed the model or that a 32-thread warp is the optimal physical implementation.
 
 ## GPU model
 
@@ -177,6 +247,16 @@ Two modes are expected:
 - performance observation only;
 - cannot later be relabelled as conformance evidence unless evidence-mode requirements were actually satisfied.
 
+## Receipt separation
+
+The correctness record and performance record have different jobs.
+
+Correctness receipts bind deterministic inputs, algorithms, numerical profiles, graph/traversal identities, conformation ranges, diagnostics, and residual evidence.
+
+Benchmark receipts may record elapsed time, throughput, worker counts, chunk counts, and memory budgets, but they carry `performance_claim=false` and are excluded from correctness identity.
+
+A fast result is not a more biologically valid result.
+
 ## Source replacement contract
 
 A researcher replacing schematic inputs with cryo-EM, MD or biochemical evidence should ideally need to change only:
@@ -189,11 +269,15 @@ A researcher replacing schematic inputs with cryo-EM, MD or biochemical evidence
 They should not need to rewrite:
 
 - worker scheduling;
+- execution graph mechanics where still compatible;
+- bounded chunk planning;
 - device sharding;
 - evidence manifests;
 - run hashing;
 - accelerator orchestration;
 - generic observables that remain semantically compatible.
+
+An optimization that depends on assumptions absent from the new profile must fail admission rather than silently survive source replacement.
 
 ## Scientific non-authority of the runtime
 
@@ -202,6 +286,8 @@ The runtime can establish facts such as:
 - input profile X produced output Y;
 - all configured constraints were evaluated;
 - a run was complete;
+- a campaign passed its declared computational residual gates;
+- correctness identity remained stable across worker/chunk plans;
 - CPU and GPU implementations agreed within tolerance;
 - results were reproducible under a declared environment.
 
@@ -209,6 +295,7 @@ It cannot, by itself, establish:
 
 - that the profile is biologically correct;
 - that a simulated conformation occurs in vivo;
+- that an execution-graph edge is a biological edge;
 - that an observable is clinically meaningful;
 - that a mechanism explains disease;
 - that an intervention would work.
