@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/QSOLKCB/igm/schemas/source-registry.schema.json",
+  "title": "IGM Source Registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "project", "sources"],
+  "properties": {
+    "schema": {"const": "igm-source-registry/1"},
+    "project": {"const": "QSOLKCB/igm"},
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/source"}
+    }
+  },
+  "$defs": {
+    "access": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "redistribution"],
+      "properties": {
+        "status": {
+          "enum": ["publicly-accessible", "open-access", "registration-required", "restricted"]
+        },
+        "redistribution": {"type": "string", "minLength": 1}
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": ["id", "class", "title", "url", "authority"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{2,127}$"},
+        "class": {"type": "string", "minLength": 1},
+        "title": {"type": "string", "minLength": 1},
+        "authors": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "publisher": {"type": "string", "minLength": 1},
+        "year": {"type": "integer"},
+        "doi": {"type": "string", "pattern": "^10\\.[0-9]{4,9}/\\S+$"},
+        "pubmed": {"type": "string", "pattern": "^[0-9]+$"},
+        "pdb": {"type": "string", "pattern": "^[0-9][A-Za-z0-9]{3}$"},
+        "emdb": {"type": "string", "pattern": "^EMD-[0-9]+$"},
+        "url": {"type": "string", "pattern": "^https://"},
+        "effective_date": {"type": "string"},
+        "authority": {"type": "string", "minLength": 1},
+        "access": {"$ref": "#/$defs/access"},
+        "supports": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+        "does_not_support": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+        "notes": {"type": "string"}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "class": {"enum": ["public-structure", "peer-reviewed-literature", "preprint", "molecular-dynamics", "biochemical-measurement", "background-only"]}
+            },
+            "required": ["class"]
+          },
+          "then": {"required": ["access", "supports", "does_not_support"]}
+        },
+        {
+          "if": {
+            "properties": {
+              "class": {"enum": ["public-structure", "peer-reviewed-literature"]},
+              "authority": {"const": "structural-source"}
+            },
+            "required": ["class", "authority"]
+          },
+          "then": {
+            "anyOf": [
+              {"required": ["doi"]},
+              {"required": ["pdb"]},
+              {"required": ["emdb"]}
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
