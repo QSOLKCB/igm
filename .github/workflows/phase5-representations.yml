@@ -10,6 +10,7 @@ on:
       - "Cargo.lock"
       - "runtime/rust/src/lib_v6.rs"
       - "runtime/rust/src/phase5.rs"
+      - "runtime/rust/src/phase5_v2.rs"
       - "runtime/rust/src/representation_main.rs"
       - "runtime/profiles/igm-phase5-v0.json"
       - "runtime/profiles/igm-penta-crt-cpu-v1.json"
@@ -18,6 +19,8 @@ on:
       - "schemas/phase5-representation-bundle.schema.json"
       - "tools/validate_phase5.py"
       - "tools/validate_json_schema.py"
+      - "tools/validate_sources.py"
+      - "tools/validate_phase4.py"
       - "docs/PHASE5_REPRESENTATIONS.md"
       - "governance/policy.json"
       - "ROADMAP.md"
@@ -31,6 +34,7 @@ on:
       - "Cargo.lock"
       - "runtime/rust/src/lib_v6.rs"
       - "runtime/rust/src/phase5.rs"
+      - "runtime/rust/src/phase5_v2.rs"
       - "runtime/rust/src/representation_main.rs"
       - "runtime/profiles/igm-phase5-v0.json"
       - "runtime/profiles/igm-penta-crt-cpu-v1.json"
@@ -39,6 +43,8 @@ on:
       - "schemas/phase5-representation-bundle.schema.json"
       - "tools/validate_phase5.py"
       - "tools/validate_json_schema.py"
+      - "tools/validate_sources.py"
+      - "tools/validate_phase4.py"
       - "docs/PHASE5_REPRESENTATIONS.md"
       - "governance/policy.json"
       - "ROADMAP.md"
@@ -61,13 +67,15 @@ jobs:
           cargo --version
           python3 --version
 
-      - name: Phase 5 structural and governance gates
+      - name: Phase 5 structural governance and evidence gates
         run: |
-          python3 -m py_compile tools/validate_phase5.py tools/validate_json_schema.py
+          python3 -m py_compile tools/validate_phase5.py tools/validate_json_schema.py tools/validate_sources.py tools/validate_phase4.py
           python3 tools/validate_json_schema.py --self-test
           python3 tools/validate_json_schema.py --schema schemas/phase5-representation-config.schema.json runtime/profiles/igm-phase5-v0.json
           python3 tools/validate_phase5.py
           python3 tools/validate_docs.py
+          python3 tools/validate_sources.py --self-test
+          python3 tools/validate_sources.py
           python3 tools/validate_phase4.py
           python3 tools/validate_profile.py profiles/igm-schematic-pentamer-v0.json
 
@@ -76,6 +84,43 @@ jobs:
 
       - name: Release build
         run: cargo build --locked --release
+
+      - name: Phase 4 evidence CLI boundary remains executable
+        run: |
+          ./target/release/igm-evidence registry > /tmp/igm-phase4-registry.json
+          ./target/release/igm-evidence adapt \
+            research/evidence/cryo-em-pentamer-count.json \
+            > /tmp/igm-phase4-adapted.json
+          python3 - <<'PY'
+          import json
+          registry = json.load(open('/tmp/igm-phase4-registry.json', encoding='utf-8'))
+          adapted = json.load(open('/tmp/igm-phase4-adapted.json', encoding='utf-8'))
+          assert registry['source_adapter_contract'] == 'IGM-SOURCE-ADAPTER-V1'
+          assert registry['validation_level_promoted_by_adapter'] is False
+          assert adapted['source_adapter_contract'] == 'IGM-SOURCE-ADAPTER-V1'
+          assert adapted['claim_strengthening_detected'] is False
+          assert adapted['validation_level_promoted_by_adapter'] is False
+          print('OK: Phase 5 still consumes an executable Phase 4 evidence boundary')
+          PY
+
+      - name: Runtime rejects schema-invalid Phase 5 configuration
+        run: |
+          python3 - <<'PY'
+          import json
+          src = 'runtime/profiles/igm-phase5-v0.json'
+          config = json.load(open(src, encoding='utf-8'))
+          config['notes'] = ''
+          with open('/tmp/igm-phase5-schema-invalid.json', 'w', encoding='utf-8') as f:
+              json.dump(config, f, indent=2)
+              f.write('\n')
+          PY
+          if ./target/release/igm-represent bundle \
+            profiles/igm-schematic-pentamer-v0.json \
+            /tmp/igm-phase5-schema-invalid.json; then
+            echo 'expected public Phase 5 runtime boundary to reject schema-invalid config' >&2
+            exit 1
+          fi
+          echo 'OK: public Phase 5 runtime runs declared JSON-Schema admission gates'
 
       - name: Emit deterministic Phase 5 representation bundle
         run: |
@@ -100,8 +145,54 @@ jobs:
           b = json.load(open('/tmp/igm-phase5-bundle-2.json', encoding='utf-8'))
           assert a['bundle_sha256'] == b['bundle_sha256']
           assert a == b
-          print('OK: Phase 5 bundle identity and bytes are deterministic')
+          assert len(a['ensemble_statistics']['source_execution_profile_sha256']) == 64
+          assert a['ensemble_statistics']['source_execution_profile_id'] == 'IGM-PENTA-CRT-SYMMETRIC-V0'
+          print('OK: Phase 5 bundle identity and exact execution-profile provenance are deterministic')
           PY
+
+      - name: Phase 5 semantic and identity tampering is rejected
+        run: |
+          python3 - <<'PY'
+          import copy
+          import json
+          import sys
+          sys.path.insert(0, 'tools')
+          import validate_phase5 as v
+
+          original = json.load(open('/tmp/igm-phase5-bundle.json', encoding='utf-8'))
+
+          stale = copy.deepcopy(original)
+          stale['arrays'][0]['data'][0] += 0.125
+          with open('/tmp/igm-phase5-stale-digest.json', 'w', encoding='utf-8') as f:
+              json.dump(stale, f, indent=2)
+              f.write('\n')
+
+          graph = copy.deepcopy(original)
+          if not graph['visualization_graph']['edges']:
+              raise SystemExit('reference visualization graph unexpectedly has no edges')
+          graph['visualization_graph']['edges'][0]['biological_relationship_claimed'] = True
+          graph['bundle_sha256'] = v.compute_bundle_identity(graph)
+          with open('/tmp/igm-phase5-bad-graph.json', 'w', encoding='utf-8') as f:
+              json.dump(graph, f, indent=2)
+              f.write('\n')
+
+          observable = copy.deepcopy(original)
+          observable['observables']['pairs'][0]['distance'] += 0.5
+          observable['bundle_sha256'] = v.compute_bundle_identity(observable)
+          with open('/tmp/igm-phase5-bad-observable.json', 'w', encoding='utf-8') as f:
+              json.dump(observable, f, indent=2)
+              f.write('\n')
+          PY
+          for bad in \
+            /tmp/igm-phase5-stale-digest.json \
+            /tmp/igm-phase5-bad-graph.json \
+            /tmp/igm-phase5-bad-observable.json; do
+            if python3 tools/validate_phase5.py --bundle "$bad"; then
+              echo "expected Phase 5 validator to reject tampered bundle: $bad" >&2
+              exit 1
+            fi
+          done
+          echo 'OK: Phase 5 validator rejects stale identity, graph promotion, and inconsistent observables'
 
       - name: Tensor network fails closed without material reduction
         run: |
@@ -126,6 +217,14 @@ jobs:
               if key.endswith('_merged'):
                   assert value is False, key
           assert s['cross_namespace_semantic_promotion_claimed'] is False
+          namespaces = {
+              b['model_graph']['namespace'],
+              b['model_hypergraph']['namespace'],
+              b['provenance_graph']['namespace'],
+              b['tensor_factor_graph']['namespace'],
+              b['visualization_graph']['namespace'],
+          }
+          assert len(namespaces) == 5
           assert all(p['biological_contact_claimed'] is False for p in b['observables']['pairs'])
           assert all(a['biochemical_accessibility_claimed'] is False for a in b['observables']['accessibility'])
           assert b['scientific_interpretation_claimed'] is False
