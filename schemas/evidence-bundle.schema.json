@@ -15,6 +15,7 @@
     "validation_level_promoted_by_adapter",
     "biological_validity_claimed",
     "clinical_validity_claimed",
+    "inv_bio_001",
     "bundle_sha256"
   ],
   "properties": {
@@ -37,6 +38,7 @@
     "validation_level_promoted_by_adapter": {"const": false},
     "biological_validity_claimed": {"const": false},
     "clinical_validity_claimed": {"const": false},
+    "inv_bio_001": {"const": "Perfect Mathematics Does Not Equal Perfect Biological Reality"},
     "bundle_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
   }
 }
