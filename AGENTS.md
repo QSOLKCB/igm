@@ -58,21 +58,23 @@ Read:
 
 before changing model semantics, data handling, medical language, or validation status.
 
-For runtime scheduling, memory-layout, campaign, accelerator, property-fuzz, or performance-benchmark changes also read:
+For runtime scheduling, memory-layout, campaign, accelerator, property-fuzz, performance-benchmark, or evidence-adapter changes also read:
 
 - `docs/RUST_RUNTIME.md`
 - `docs/PENTA_CRT_CPU.md`
 - `docs/EXECUTION_CAMPAIGNS.md`
 - `docs/PROPERTY_FUZZING.md`
 - `docs/TIMING_BENCHMARK.md`
+- `docs/EVIDENCE_ADAPTERS.md`
 - `docs/PRE_PHASE5_READINESS.md`
 - `docs/RUNTIME_LINEAGE.md`
+- `docs/RESEARCH_DATA_AND_PROVENANCE.md`
 
 ## Prohibited claims
 
 Do not state or imply that this repository diagnoses, predicts, monitors, prevents, treats or cures disease; recommends treatment; models an individual patient; or is clinically validated or approved.
 
-Do not convert personal experience, anecdote, visual resemblance, numerical stability, accelerator agreement, benchmark speed, or an attractive plot into biological evidence.
+Do not convert personal experience, anecdote, visual resemblance, numerical stability, accelerator agreement, benchmark speed, source ingestion success, or an attractive plot into biological evidence.
 
 ## Human data
 
@@ -92,6 +94,7 @@ If a proposed task requires human participants or their data, stop and identify 
 - Unknown or unsupported values must remain unknown/assumed, not silently invented.
 - `unknown` parameters must not carry a runtime value; use `assumed` for explicit placeholders.
 - `observed`, `source-derived`, and `calibrated` parameters require source provenance and derivation metadata.
+- Evidence-backed parameters must carry explicit uncertainty rather than an omitted or fabricated zero uncertainty.
 - V0–V2 profiles must keep `biological_validity_claimed=false`.
 - Component identifiers must be unique within a profile.
 
@@ -102,6 +105,28 @@ If a proposed task requires human participants or their data, stop and identify 
 `tools/validate_profile.py` is the dependency-free semantic pre-execution gate for cross-field requirements that portable JSON Schema cannot express directly, including uniqueness by component `id`.
 
 Future runtimes, Pages tools, and accelerator paths must reject a profile that fails either structural/schema validation or the semantic pre-execution gate. Do not bypass the validator because a renderer or kernel could otherwise consume the data.
+
+## Phase 4 evidence ingestion
+
+**Phase 4 gate: Source ingestion must not silently convert observations into stronger claims than the source supports.**
+
+`IGM-SOURCE-ADAPTER-V1` is the replaceable source-adapter boundary.
+
+All evidence-adapter work must preserve these rules:
+
+- The source must resolve in `research/sources.json`.
+- Structural source records must retain DOI/PDB/EMDB identifiers where available and must retain access/redistribution guidance.
+- Adapter input must cite a `support_statement` that exactly matches a registered source `supports` statement.
+- Adapters derive output evidence status from the declared transformation. Callers do not get to relabel transformed evidence as direct observation.
+- Evidence-backed parameters require explicit uncertainty. `unknown` or `source-reported` uncertainty requires explanatory notes; do not invent zero uncertainty.
+- Cryo-EM, molecular-dynamics, and biochemical/calibration adapters remain separately named contracts.
+- Conflict and unknown states must be preserved. Do not average, vote, or force reconciliation in the ingestion layer.
+- Snapshot default is `reference-only`. Hash-only or packaged source material requires the explicit source snapshot policy to permit that mode.
+- A packaged external payload requires verified redistribution permission and a SHA-256 identity.
+- Preserve `does_not_support` limitations in adapted evidence records.
+- Source ingestion may not promote validation level, biological validity, or clinical validity.
+- `research/v0-implementation-constants.json` is V0-only. Source-informed profiles may not silently inherit those assumed drawing constants as biology.
+- Adapter success is provenance/normalization evidence only. It is not independent biological validation.
 
 ## Execution and campaign semantics
 
@@ -146,9 +171,9 @@ Future runtimes, Pages tools, and accelerator paths must reject a profile that f
 
 `docs/PRE_PHASE5_READINESS.md` is normative project sequencing guidance.
 
-Phase 5 is currently `BLOCKED_ON_PHASE4`. Do not begin Phase 5 representation work by assuming the evidence-adapter layer exists.
+On the Phase 4 PR branch the state is `READY_ON_PHASE4_MERGE`. Do not claim `READY_ON_MAIN` until the Phase 4 PR has actually merged with its evidence-adapter CI green.
 
-Phase 4 must establish a replaceable source-adapter contract, provenance/uncertainty handling, conflict/unknown preservation, licence/access propagation, and a fail-closed source-ingestion gate before the readiness state can be promoted.
+Phase 5 representation work must consume the Phase 4 source/provenance contracts rather than bypass them.
 
 ## Validation
 
@@ -220,6 +245,16 @@ Phase 3C campaign changes must additionally exercise and validate an accepted ca
 
 ```bash
 python3 tools/validate_campaign.py CAMPAIGN_DIR
+```
+
+Phase 4 evidence/source changes must additionally run:
+
+```bash
+python3 tools/validate_sources.py --self-test
+python3 tools/validate_sources.py
+python3 tools/validate_phase4.py
+./target/release/igm-evidence registry
+./target/release/igm-evidence adapt research/evidence/cryo-em-pentamer-count.json
 ```
 
 until broader implementation CI replaces or extends these gates.

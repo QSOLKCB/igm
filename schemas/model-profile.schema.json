@@ -15,34 +15,18 @@
     "claims"
   ],
   "properties": {
-    "schema": {
-      "const": "IGM-MODEL-PROFILE-V1"
-    },
-    "model_id": {
-      "type": "string",
-      "pattern": "^[A-Z0-9][A-Z0-9._-]{2,127}$"
-    },
-    "version": {
-      "type": "string",
-      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
-    },
-    "validation_level": {
-      "enum": ["V0", "V1", "V2", "V3", "V4"]
-    },
+    "schema": {"const": "IGM-MODEL-PROFILE-V1"},
+    "model_id": {"type": "string", "pattern": "^[A-Z0-9][A-Z0-9._-]{2,127}$"},
+    "version": {"type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"},
+    "validation_level": {"enum": ["V0", "V1", "V2", "V3", "V4"]},
     "representation": {
       "type": "object",
       "additionalProperties": false,
       "required": ["primary"],
       "properties": {
-        "primary": {
-          "enum": ["articulated-geometry", "tensor", "graph", "hybrid"]
-        },
-        "coordinate_adapter": {
-          "enum": ["cartesian", "cyclic", "vortex-inspired", "custom"]
-        },
-        "coordinate_adapter_is_biological_ontology": {
-          "const": false
-        }
+        "primary": {"enum": ["articulated-geometry", "tensor", "graph", "hybrid"]},
+        "coordinate_adapter": {"enum": ["cartesian", "cyclic", "vortex-inspired", "custom"]},
+        "coordinate_adapter_is_biological_ontology": {"const": false}
       }
     },
     "components": {
@@ -54,28 +38,11 @@
         "additionalProperties": false,
         "required": ["id", "kind", "source_status"],
         "properties": {
-          "id": {
-            "type": "string",
-            "pattern": "^[A-Za-z0-9._:-]+$"
-          },
-          "kind": {
-            "type": "string",
-            "minLength": 1
-          },
-          "source_status": {
-            "$ref": "#/$defs/evidenceStatus"
-          },
-          "source_ids": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1
-            },
-            "uniqueItems": true
-          },
-          "notes": {
-            "type": "string"
-          }
+          "id": {"type": "string", "pattern": "^[A-Za-z0-9._:-]+$"},
+          "kind": {"type": "string", "minLength": 1},
+          "source_status": {"$ref": "#/$defs/evidenceStatus"},
+          "source_ids": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+          "notes": {"type": "string"}
         }
       }
     },
@@ -86,94 +53,43 @@
         "additionalProperties": false,
         "required": ["name", "status"],
         "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 1
-          },
+          "name": {"type": "string", "minLength": 1},
           "value": {},
-          "unit": {
-            "type": ["string", "null"]
-          },
-          "status": {
-            "$ref": "#/$defs/evidenceStatus"
-          },
-          "source_id": {
-            "type": ["string", "null"]
-          },
-          "derivation": {
-            "enum": ["direct", "transformed", "calibrated", "inferred", "assumed", "unknown"]
-          },
-          "uncertainty": {},
-          "lower_bound": {
-            "type": ["number", "integer", "null"]
-          },
-          "upper_bound": {
-            "type": ["number", "integer", "null"]
-          },
-          "notes": {
-            "type": "string"
-          }
+          "unit": {"type": ["string", "null"]},
+          "status": {"$ref": "#/$defs/evidenceStatus"},
+          "source_id": {"type": ["string", "null"]},
+          "derivation": {"enum": ["direct", "transformed", "calibrated", "inferred", "assumed", "unknown"]},
+          "uncertainty": {"$ref": "#/$defs/evidenceUncertainty"},
+          "lower_bound": {"type": ["number", "integer", "null"]},
+          "upper_bound": {"type": ["number", "integer", "null"]},
+          "notes": {"type": "string"}
         },
         "allOf": [
           {
-            "if": {
-              "properties": {
-                "status": {"const": "unknown"}
-              },
-              "required": ["status"]
-            },
+            "if": {"properties": {"status": {"const": "unknown"}}, "required": ["status"]},
             "then": {
               "not": {"required": ["value"]},
-              "properties": {
-                "derivation": {"const": "unknown"},
-                "source_id": {"type": "null"}
-              }
+              "properties": {"derivation": {"const": "unknown"}, "source_id": {"type": "null"}}
             }
           },
           {
-            "if": {
-              "properties": {
-                "status": {
-                  "enum": ["observed", "source-derived", "calibrated"]
-                }
-              },
-              "required": ["status"]
-            },
+            "if": {"properties": {"status": {"enum": ["observed", "source-derived", "calibrated"]}}, "required": ["status"]},
             "then": {
               "required": ["source_id", "derivation"],
-              "properties": {
-                "source_id": {
-                  "type": "string",
-                  "minLength": 1
-                }
-              }
+              "properties": {"source_id": {"type": "string", "minLength": 1}}
             }
           },
           {
-            "if": {
-              "properties": {
-                "status": {"const": "observed"}
-              },
-              "required": ["status"]
-            },
-            "then": {
-              "properties": {
-                "derivation": {"const": "direct"}
-              }
-            }
+            "if": {"properties": {"status": {"enum": ["observed", "source-derived", "calibrated"]}}, "required": ["status"]},
+            "then": {"required": ["uncertainty"]}
           },
           {
-            "if": {
-              "properties": {
-                "status": {"const": "calibrated"}
-              },
-              "required": ["status"]
-            },
-            "then": {
-              "properties": {
-                "derivation": {"const": "calibrated"}
-              }
-            }
+            "if": {"properties": {"status": {"const": "observed"}}, "required": ["status"]},
+            "then": {"properties": {"derivation": {"const": "direct"}}}
+          },
+          {
+            "if": {"properties": {"status": {"const": "calibrated"}}, "required": ["status"]},
+            "then": {"properties": {"derivation": {"const": "calibrated"}}}
           }
         ]
       }
@@ -185,100 +101,65 @@
         "additionalProperties": false,
         "required": ["id", "kind", "status"],
         "properties": {
-          "id": {
-            "type": "string",
-            "minLength": 1
-          },
-          "kind": {
-            "type": "string",
-            "minLength": 1
-          },
-          "status": {
-            "$ref": "#/$defs/evidenceStatus"
-          },
-          "source_ids": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "uniqueItems": true
-          },
+          "id": {"type": "string", "minLength": 1},
+          "kind": {"type": "string", "minLength": 1},
+          "status": {"$ref": "#/$defs/evidenceStatus"},
+          "source_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
           "definition": {}
         }
       }
     },
-    "source_ids": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      },
-      "uniqueItems": true
-    },
+    "source_ids": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
     "claims": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "biological_validity_claimed",
-        "clinical_validity_claimed",
-        "medical_device_claimed",
-        "diagnostic_use_claimed",
-        "treatment_use_claimed"
-      ],
+      "required": ["biological_validity_claimed", "clinical_validity_claimed", "medical_device_claimed", "diagnostic_use_claimed", "treatment_use_claimed"],
       "properties": {
-        "biological_validity_claimed": {
-          "type": "boolean"
-        },
-        "clinical_validity_claimed": {
-          "const": false
-        },
-        "medical_device_claimed": {
-          "const": false
-        },
-        "diagnostic_use_claimed": {
-          "const": false
-        },
-        "treatment_use_claimed": {
-          "const": false
-        }
+        "biological_validity_claimed": {"type": "boolean"},
+        "clinical_validity_claimed": {"const": false},
+        "medical_device_claimed": {"const": false},
+        "diagnostic_use_claimed": {"const": false},
+        "treatment_use_claimed": {"const": false}
       }
     },
-    "notes": {
-      "type": "string"
-    }
+    "notes": {"type": "string"}
   },
   "allOf": [
     {
-      "if": {
-        "properties": {
-          "validation_level": {
-            "enum": ["V0", "V1", "V2"]
-          }
-        },
-        "required": ["validation_level"]
-      },
-      "then": {
-        "properties": {
-          "claims": {
-            "properties": {
-              "biological_validity_claimed": {
-                "const": false
-              }
-            }
-          }
-        }
-      }
+      "if": {"properties": {"validation_level": {"enum": ["V0", "V1", "V2"]}}, "required": ["validation_level"]},
+      "then": {"properties": {"claims": {"properties": {"biological_validity_claimed": {"const": false}}}}}
     }
   ],
   "$defs": {
     "evidenceStatus": {
-      "enum": [
-        "observed",
-        "source-derived",
-        "calibrated",
-        "inferred",
-        "assumed",
-        "unknown"
+      "enum": ["observed", "source-derived", "calibrated", "inferred", "assumed", "unknown"]
+    },
+    "evidenceUncertainty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": {"enum": ["unknown", "interval", "standard-deviation", "confidence-interval", "source-reported"]},
+        "lower": {"type": ["number", "integer", "null"]},
+        "upper": {"type": ["number", "integer", "null"]},
+        "value": {"type": ["number", "integer", "null"], "minimum": 0},
+        "level": {"type": ["number", "integer", "null"], "minimum": 0, "maximum": 1},
+        "unit": {"type": ["string", "null"]},
+        "notes": {"type": "string", "minLength": 1}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"kind": {"enum": ["unknown", "source-reported"]}}, "required": ["kind"]},
+          "then": {"required": ["notes"]}
+        },
+        {
+          "if": {"properties": {"kind": {"enum": ["interval", "confidence-interval"]}}, "required": ["kind"]},
+          "then": {"required": ["lower", "upper"]}
+        },
+        {
+          "if": {"properties": {"kind": {"const": "standard-deviation"}}, "required": ["kind"]},
+          "then": {"required": ["value"]}
+        }
       ]
     }
   }

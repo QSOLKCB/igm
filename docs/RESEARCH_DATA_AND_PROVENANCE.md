@@ -35,13 +35,50 @@ A source-informed parameter should carry at least:
   "unit": "example-unit",
   "status": "source-derived",
   "source_id": "source.example",
-  "derivation": "direct|transformed|calibrated|inferred",
-  "uncertainty": null,
+  "derivation": "transformed",
+  "uncertainty": {
+    "kind": "source-reported",
+    "notes": "What uncertainty the source reports, or why it is not quantified"
+  },
   "notes": "What the source actually supports"
 }
 ```
 
+For `observed`, `source-derived`, and `calibrated` parameters, provenance **and** an explicit uncertainty object are mandatory. Absence of a reported uncertainty is represented explicitly, for example with `kind=unknown` plus an explanation. Do not convert missing uncertainty into numeric zero.
+
 Never convert `unknown` into a guessed numeric value merely because the runtime requires a number. If a simulation requires a placeholder, label it `assumed` and isolate it in the model profile.
+
+## Phase 4 source-adapter boundary
+
+The executable Phase 4 source ingestion contract is documented in `docs/EVIDENCE_ADAPTERS.md` and implemented in `runtime/rust/src/phase4.rs`.
+
+The normative gate is:
+
+> **Source ingestion must not silently convert observations into stronger claims than the source supports.**
+
+Every adapted candidate must preserve:
+
+- source identity;
+- source class and authority;
+- DOI/PDB/EMDB/PubMed/URL locator metadata where present;
+- access and redistribution guidance;
+- an exact registry `supports` statement;
+- registry `does_not_support` limitations;
+- derivation class;
+- explicit uncertainty;
+- source snapshot mode;
+- non-promotion of validation and clinical/biological validity.
+
+Output evidence status is derived from the declared transformation rather than supplied as an arbitrary caller label:
+
+```text
+direct       -> observed
+transformed  -> source-derived
+calibrated   -> calibrated
+inferred     -> inferred
+assumed      -> assumed
+unknown      -> unknown
+```
 
 ## Claim-preserving ingestion
 
@@ -59,6 +96,8 @@ source reports a flexible hinge range
     -> profile may NOT claim the range is exhaustive in vivo
 ```
 
+Phase 4 additionally requires the adapter input's `support_statement` to exactly match a statement registered in that source's `supports` list. A stronger sentence must be added and reviewed at the source-registry layer before an adapter can rely on it.
+
 ## Public structural sources
 
 Publicly available structural records are preferred for early V1 profiles because they permit transparent provenance and independent inspection.
@@ -75,6 +114,8 @@ Each registry entry should capture, where known:
 - exact model parameters derived from it;
 - limitations.
 
+`schemas/source-registry.schema.json` and `tools/validate_sources.py` now require structural sources to retain at least one DOI/PDB/EMDB identifier, and the checked-in structural registry collectively contains all three identifier classes.
+
 ## Research-data identity
 
 Every imported data object used to produce an accepted model or report should eventually have:
@@ -86,6 +127,16 @@ Every imported data object used to produce an accepted model or report should ev
 - adapter version;
 - transformation manifest;
 - model-profile version consuming it.
+
+Phase 4 implements the source-byte side of this through `research/source-snapshot-policy.json`:
+
+```text
+reference-only
+hash-only
+packaged
+```
+
+`reference-only` is the fail-closed default. `hash-only` requires a SHA-256 without committing the source payload. `packaged` requires explicit verified redistribution permission plus a SHA-256. Public availability alone is not packaging permission.
 
 ## Human and private data
 
@@ -104,6 +155,8 @@ biological_evidence: false
 
 Synthetic test success cannot promote a model beyond V0.
 
+The MD and biochemical Phase 4 adapters use in-memory synthetic records for positive implementation tests rather than registering invented scientific values as biological evidence.
+
 ## Conflict preservation
 
 If credible sources disagree:
@@ -113,7 +166,15 @@ If credible sources disagree:
 - avoid averaging them into an apparently precise value without justification;
 - allow separate model profiles where appropriate.
 
+`IGM-PHASE4-EVIDENCE-BUNDLE-V1` represents `single`, `concordant`, `conflict`, and `unknown`. Multiple candidates are never automatically reconciled, even when concordant. `reconciliation_performed=false` is fixed at the ingestion layer.
+
 The runtime should support disagreement rather than conceal it.
+
+## Legacy V0 constants
+
+`research/v0-implementation-constants.json` externalizes the known legacy V0 drawing constants as assumed, non-biological implementation metadata.
+
+A source-informed profile may not silently inherit those values. If a corresponding quantity becomes biologically meaningful, it needs source provenance and uncertainty or must remain unknown.
 
 ## Corrections
 

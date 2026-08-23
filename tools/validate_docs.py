@@ -14,8 +14,9 @@ PHASE3A_GATE = (
     "Rust/Pages agreement establishes implementation agreement for the schematic fixture only. "
     "PR3 does not create a source-informed biological model, molecular dynamics engine, or clinical result."
 )
+PHASE4_GATE = "Source ingestion must not silently convert observations into stronger claims than the source supports."
 BENCHMARK_CONTRACT = "IGM-PHASE3B-SCALAR-VS-OPTIMIZED-BENCHMARK-V1"
-PRE_PHASE5_STATUS = "BLOCKED_ON_PHASE4"
+PRE_PHASE5_STATUS = "READY_ON_PHASE4_MERGE"
 
 REQUIRED_FILES = [
     "LICENSE",
@@ -36,15 +37,25 @@ REQUIRED_FILES = [
     "docs/PROPERTY_FUZZING.md",
     "docs/TIMING_BENCHMARK.md",
     "docs/PRE_PHASE5_READINESS.md",
+    "docs/EVIDENCE_ADAPTERS.md",
     "governance/policy.json",
     "research/sources.json",
+    "research/source-snapshot-policy.json",
+    "research/v0-implementation-constants.json",
+    "research/evidence/cryo-em-pentamer-count.json",
     "schemas/model-profile.schema.json",
     "schemas/campaign-manifest.schema.json",
     "schemas/correctness-receipt.schema.json",
     "schemas/phase3c-gate-receipt.schema.json",
+    "schemas/source-registry.schema.json",
+    "schemas/evidence-input.schema.json",
+    "schemas/evidence-bundle.schema.json",
+    "schemas/source-snapshot-policy.schema.json",
     "tools/validate_profile.py",
     "tools/validate_campaign.py",
     "tools/validate_campaign_v2.py",
+    "tools/validate_sources.py",
+    "tools/validate_phase4.py",
 ]
 
 INVARIANT_FILES = [
@@ -131,16 +142,32 @@ def main() -> int:
         if required not in benchmark_doc:
             fail(f"timing benchmark documentation missing contract/boundary text: {required!r}")
 
+    evidence_doc = (ROOT / "docs/EVIDENCE_ADAPTERS.md").read_text(encoding="utf-8")
+    for required in (
+        "IGM-SOURCE-ADAPTER-V1",
+        "IGM-CRYO-EM-PARAMETER-ADAPTER-V1",
+        "IGM-MD-TRAJECTORY-ADAPTER-V1",
+        "IGM-BIOCHEMICAL-CALIBRATION-ADAPTER-V1",
+        "IGM-PHASE4-EVIDENCE-BUNDLE-V1",
+        "reference-only",
+        "conflict",
+        PHASE4_GATE,
+    ):
+        if required not in evidence_doc:
+            fail(f"Phase 4 evidence-adapter documentation missing required text: {required!r}")
+
     readiness_doc = (ROOT / "docs/PRE_PHASE5_READINESS.md").read_text(encoding="utf-8")
     for required in (
-        PRE_PHASE5_STATUS,
-        "Phase 4 is not optional",
-        "source-adapter interface",
-        "conflict and unknown",
-        "The next substantive scientific architecture PR should be **Phase 4**, not Phase 5.",
+        "Status: **READY_ON_PHASE4_MERGE**.",
+        "Phase 4 gate now implemented",
+        PHASE4_GATE,
+        "Phase 5 representation work",
+        "does **not** mean that IGM now has a validated source-informed IgM model",
     ):
         if required not in readiness_doc:
             fail(f"pre-Phase 5 readiness audit missing required text: {required!r}")
+    if "Status: **READY_ON_MAIN**." in readiness_doc:
+        fail("pre-Phase 5 audit must not claim READY_ON_MAIN before PR #9 merges")
 
     roadmap = (ROOT / "ROADMAP.md").read_text(encoding="utf-8")
     if "- [x] Add property-based fuzzing beyond deterministic edge-case tests." not in roadmap:
@@ -152,11 +179,27 @@ def main() -> int:
     if BENCHMARK_CONTRACT not in roadmap:
         fail("ROADMAP.md must name the Phase 3B timing-benchmark contract")
     if PRE_PHASE5_STATUS not in roadmap:
-        fail("ROADMAP.md must keep Phase 5 blocked on Phase 4")
-    if "Status: **next required phase; hard blocker for Phase 5**." not in roadmap:
-        fail("ROADMAP.md must keep Phase 4 as the next required pre-Phase 5 phase")
-    if "**Entry condition: Phase 4 gate implemented and pre-Phase 5 audit updated from `BLOCKED_ON_PHASE4`.**" not in roadmap:
-        fail("Phase 5 entry condition must require the Phase 4 gate")
+        fail("ROADMAP.md must record READY_ON_PHASE4_MERGE")
+    if "Status: **implemented in PR #9, pending review/merge**." not in roadmap:
+        fail("ROADMAP.md must keep Phase 4 pending review/merge until PR #9 merges")
+    for item in (
+        "Define source-adapter interface.",
+        "Maintain public structural-source registry with DOI/PDB/EMDB identifiers.",
+        "Add cryo-EM parameter adapter.",
+        "Add molecular-dynamics trajectory adapter.",
+        "Add biochemical/calibration constraint adapter.",
+        "Preserve source licence/access metadata.",
+        "Require per-parameter provenance and uncertainty.",
+        "Add conflict/unknown representation rather than forced reconciliation.",
+        "Add source snapshots/hashes only where reuse terms permit.",
+        "Externalize any remaining V0 implementation constants that become biologically meaningful in source-informed profiles.",
+    ):
+        if f"- [x] {item}" not in roadmap:
+            fail(f"ROADMAP.md must mark Phase 4 item implemented: {item}")
+    if PHASE4_GATE not in roadmap:
+        fail("ROADMAP.md must preserve the Phase 4 gate")
+    if "**Entry condition: PR #9 merged with the Phase 4 gate and source-adapter CI green.**" not in roadmap:
+        fail("Phase 5 entry condition must require merged Phase 4 gate and green source-adapter CI")
 
     license_text = (ROOT / "LICENSE").read_text(encoding="utf-8")
     if "Apache License" not in license_text or "Version 2.0" not in license_text:
@@ -208,6 +251,8 @@ def main() -> int:
         '"not": {"required": ["value"]}',
         '"enum": ["observed", "source-derived", "calibrated"]',
         '"required": ["source_id", "derivation"]',
+        '"required": ["uncertainty"]',
+        '"evidenceUncertainty"',
     ):
         if required_fragment not in schema_text:
             fail(f"model schema missing hardening fragment: {required_fragment}")
@@ -304,6 +349,18 @@ def main() -> int:
     if missing:
         fail(f"required source registry entries missing: {sorted(missing)}")
 
+    snapshot_policy = load_json("research/source-snapshot-policy.json")
+    if snapshot_policy.get("schema") != "IGM-SOURCE-SNAPSHOT-POLICY-V1":
+        fail("unexpected Phase 4 source snapshot policy schema")
+    if snapshot_policy.get("default_mode") != "reference-only":
+        fail("Phase 4 source snapshot default must remain reference-only")
+
+    v0_constants = load_json("research/v0-implementation-constants.json")
+    if v0_constants.get("schema") != "IGM-V0-IMPLEMENTATION-CONSTANTS-V1":
+        fail("unexpected V0 implementation constants schema")
+    if v0_constants.get("source_informed_inheritance") != "forbidden":
+        fail("source-informed profiles may not silently inherit V0 drawing constants")
+
     boundary = (ROOT / "docs/MEDICAL_RESEARCH_BOUNDARY.md").read_text(encoding="utf-8")
     for phrase in (
         "exploratory research software",
@@ -314,7 +371,7 @@ def main() -> int:
         if phrase not in boundary:
             fail(f"medical boundary missing required phrase: {phrase!r}")
 
-    print("OK: IGM documentation/governance foundation validated")
+    print("OK: IGM documentation/governance foundation validated through Phase 4")
     return 0
 
 

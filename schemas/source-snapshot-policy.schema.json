@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/QSOLKCB/igm/schemas/source-snapshot-policy.schema.json",
+  "title": "IGM Source Snapshot Policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "default_mode", "records"],
+  "properties": {
+    "schema": {"const": "IGM-SOURCE-SNAPSHOT-POLICY-V1"},
+    "default_mode": {"const": "reference-only"},
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_id",
+          "mode",
+          "redistribution_permission_verified",
+          "external_payload_committed",
+          "reason"
+        ],
+        "properties": {
+          "source_id": {"type": "string", "minLength": 1},
+          "mode": {"enum": ["reference-only", "hash-only", "packaged"]},
+          "redistribution_permission_verified": {"type": "boolean"},
+          "external_payload_committed": {"type": "boolean"},
+          "external_payload_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+          "external_payload_path": {"type": ["string", "null"], "minLength": 1},
+          "reason": {"type": "string", "minLength": 1}
+        },
+        "allOf": [
+          {
+            "if": {"properties": {"mode": {"const": "packaged"}}, "required": ["mode"]},
+            "then": {"required": ["external_payload_sha256", "external_payload_path"]}
+          }
+        ]
+      }
+    }
+  }
+}

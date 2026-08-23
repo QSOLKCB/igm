@@ -1,0 +1,34 @@
+{
+  "schema": "IGM-V0-IMPLEMENTATION-CONSTANTS-V1",
+  "model_id": "IGM-SCHEMATIC-PENTAMER-V0",
+  "validation_level": "V0",
+  "biological_meaning_claimed": false,
+  "source_informed_inheritance": "forbidden",
+  "constants": [
+    {
+      "id": "v0_subunit_z_amplitude",
+      "value": 0.08,
+      "unit": "model-unit",
+      "status": "assumed",
+      "purpose": "Legacy schematic depth modulation used only to preserve the deterministic V0 fixture.",
+      "source_informed_rule": "A V1+ profile may not inherit this number as biology. It must supply explicit source provenance and uncertainty or leave the corresponding biological quantity unknown."
+    },
+    {
+      "id": "v0_fab_z_offset",
+      "value": 0.06,
+      "unit": "model-unit",
+      "status": "assumed",
+      "purpose": "Legacy schematic Fab depth offset used only to preserve the deterministic V0 fixture.",
+      "source_informed_rule": "A V1+ profile may not inherit this number as biology. It must supply explicit source provenance and uncertainty or leave the corresponding biological quantity unknown."
+    },
+    {
+      "id": "v0_jchain_y_ratio",
+      "value": 0.35,
+      "unit": "ratio",
+      "status": "assumed",
+      "purpose": "Legacy schematic J-chain marker Y ratio used only to preserve the deterministic V0 fixture.",
+      "source_informed_rule": "A V1+ profile may not inherit this number as biology. It must supply explicit source provenance and uncertainty or leave the corresponding biological quantity unknown."
+    }
+  ],
+  "notes": "These values are externally declared V0 implementation constants, not measurements. Existing V0 browser/Rust code may retain exact literals for backward-compatible fixture identity, but Phase 4 source adapters and any future source-informed profile are forbidden from silently promoting or inheriting them as biological parameters."
+}
