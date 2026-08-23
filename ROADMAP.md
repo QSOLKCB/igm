@@ -294,9 +294,11 @@ An accepted campaign must preserve the profile/algorithm identities, pass the Ph
 
 ## Pre-Phase 5 readiness audit
 
-Status: **READY_ON_PHASE4_MERGE**.
+Status: **READY_ON_MAIN**.
 
-Phase 1 through Phase 3 are complete, and the Phase 4 source/provenance gate is implemented on PR #9. Phase 5 becomes eligible only after that PR is reviewed and merged. See `docs/PRE_PHASE5_READINESS.md`.
+Phase 1 through Phase 4 are complete on `main`. The Phase 4 source/provenance gate merged in PR #9 with its evidence-adapter CI green, so Phase 5 representation work may now begin without pretending the evidence boundary already exists. See `docs/PRE_PHASE5_READINESS.md`.
+
+`READY_ON_MAIN` is an architectural readiness state only. It does not assert that IGM has a validated V1 biological model.
 
 ---
 
@@ -304,7 +306,7 @@ Phase 1 through Phase 3 are complete, and the Phase 4 source/provenance gate is 
 
 **Target: PR #9.**
 
-Status: **implemented in PR #9, pending review/merge**.
+Status: **complete and merged in PR #9**.
 
 - [x] Define source-adapter interface.
 - [x] Maintain public structural-source registry with DOI/PDB/EMDB identifiers.
@@ -329,6 +331,15 @@ IGM-SOURCE-SNAPSHOT-POLICY-V1
 IGM-V0-IMPLEMENTATION-CONSTANTS-V1
 ```
 
+The merged gate also includes the post-review hardening required to make those contracts meaningful:
+
+- [x] Bind source support claims to structured target/value/unit/derivation mappings where machine-readable direct admission is required.
+- [x] Reject duplicate candidate identities before concordance/conflict classification.
+- [x] Enforce kind-specific uncertainty requirements and numeric bounds.
+- [x] Validate Phase 4 instances against their declared JSON schemas and reject unknown fields.
+- [x] Keep emitted evidence-bundle fields in schema parity, including `INV-BIO-001`.
+- [x] Verify actual packaged payload bytes against a repository-relative path and declared SHA-256 before packaged admission.
+
 The adapters preserve registered support/limitation statements, source access/reuse metadata, explicit uncertainty, and conflict/unknown states. They do not perform automatic reconciliation or validation-level promotion. See `docs/EVIDENCE_ADAPTERS.md`.
 
 ### Phase 4 gate
@@ -339,7 +350,9 @@ Source ingestion must not silently convert observations into stronger claims tha
 
 ## Phase 5 — Tensor, graph, and ensemble computational representations
 
-**Entry condition: PR #9 merged with the Phase 4 gate and source-adapter CI green.**
+**Entry condition satisfied: Phase 4 gate is merged on main with source-adapter CI green.**
+
+Status: **next implementation phase**.
 
 - [ ] Define explicit numerical-array projections of model state.
 - [ ] Define true tensor types only where transformation semantics are declared.

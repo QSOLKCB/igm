@@ -1,6 +1,6 @@
 # Pre-Phase 5 Readiness Audit
 
-Status: **READY_ON_PHASE4_MERGE**.
+Status: **READY_ON_MAIN**.
 
 > **INV-BIO-001: Perfect Mathematics Does Not Equal Perfect Biological Reality.**
 >
@@ -12,28 +12,30 @@ This audit exists to stop the project from treating runtime correctness, source 
 
 The repository now has:
 
-- Phase 1 governance, evidence boundaries, V0-V4 ladder, source provenance rules, and no-patient-data default;
+- Phase 1 governance, evidence boundaries, V0–V4 ladder, source provenance rules, and no-patient-data default;
 - Phase 2 deterministic Pages visual laboratory and cross-view invariants;
 - Phase 3A Rust structural reference, browser parity, deterministic CRT traversal, bounded parallelism, worker-independent identity, and seeded property-based fuzzing;
 - Phase 3B explicit synthetic execution state space, PENTA-CRT optimization, LUT geometry, squared-distance hot loop, structured XY reuse with exact Z residual corrections, sparse J correction, fixed `1e-12` residual gate, and dedicated scalar/reference-vs-optimized timing benchmark;
 - Phase 3C execution graph, 30+2 memory layout, bounded chunk campaigns, accepted/rejected receipts, immutable accepted-campaign handles, explicit acceptance gate, and benchmark/correctness identity separation;
-- Phase 4 replaceable source adapters, structural-source registry validation, explicit uncertainty/provenance requirements, conflict/unknown preservation, source snapshot policy, and V0 constant non-inheritance rules.
+- Phase 4 replaceable source adapters, structural-source registry validation, explicit uncertainty/provenance requirements, conflict/unknown preservation, source snapshot policy, source-to-target/value claim bindings, strict schema admission, duplicate-evidence rejection, packaged-payload hash verification, and V0 constant non-inheritance rules.
 
-## Phase 4 gate now implemented
+## Phase 4 gate is merged on main
 
-Phase 4 adds an executable evidence-ingestion boundary rather than a documentation promise.
+Phase 4 is complete and merged in PR #9. The evidence-ingestion boundary is now part of `main`, not a branch-only promise.
 
 The gate requires:
 
 1. a registered source with stable identity;
 2. adapter/source-class compatibility;
 3. preserved source access and redistribution metadata;
-4. an input support statement that exactly matches a registered `supports` statement;
-5. explicit evidence uncertainty;
+4. a registered support statement bound to the emitted target, value/unit contract, and admissible derivation;
+5. explicit, kind-valid evidence uncertainty;
 6. adapter-derived evidence status from the declared transformation;
 7. source snapshot mode that satisfies the repository snapshot policy;
-8. no validation-level, biological-validity, or clinical-validity promotion;
-9. conflict/unknown preservation instead of automatic reconciliation.
+8. actual packaged payload bytes to match the declared SHA-256 before packaged admission;
+9. duplicate candidate identities to be rejected rather than counted as corroboration;
+10. conflict/unknown preservation instead of automatic reconciliation;
+11. no validation-level, biological-validity, or clinical-validity promotion.
 
 The normative Phase 4 rule remains:
 
@@ -43,15 +45,13 @@ See `docs/EVIDENCE_ADAPTERS.md`.
 
 ## Phase 5 readiness state
 
-On this PR branch, Phase 5 status is:
+Phase 5 status is now:
 
 ```text
-READY_ON_PHASE4_MERGE
+READY_ON_MAIN
 ```
 
-This is intentionally not `READY_ON_MAIN` until the Phase 4 PR is reviewed and merged.
-
-After merge, Phase 5 may begin because the evidence/provenance boundary it depends on will exist in code, schemas, tests, and CI. Phase 5 must continue to distinguish:
+This means the architectural prerequisite for Phase 5 representation work is satisfied. Phase 5 must consume the Phase 4 evidence/provenance contracts rather than bypass them, and it must continue to distinguish:
 
 ```text
 source observation
@@ -66,7 +66,7 @@ without collapsing those categories.
 
 ## What readiness does not mean
 
-Phase 4 readiness does **not** mean that IGM now has a validated source-informed IgM model. That remains later work.
+`READY_ON_MAIN` does **not** mean that IGM now has a validated source-informed IgM model.
 
 In particular, Phase 4 does not:
 
@@ -95,6 +95,6 @@ A faster ingestion or runtime path cannot increase evidence strength.
 
 ## Decision
 
-If this Phase 4 PR merges with its source/adaptation CI green, the project may proceed to Phase 5 representation work.
+Phase 5 representation work may now begin from `main` because the Phase 4 gate is merged and its source/adaptation CI was green at merge.
 
-Phase 5 must consume the new evidence contracts rather than bypass them.
+That permission is architectural only. Scientific interpretation still requires explicit evidence and validation under the later phase gates.
