@@ -117,6 +117,7 @@ def load_json(path: str):
 
 
 def evidence_requirement_present(parameter_schema: dict) -> bool:
+    required: set[str] = set()
     for rule in parameter_schema.get("allOf", []):
         statuses = (
             rule.get("if", {})
@@ -124,14 +125,9 @@ def evidence_requirement_present(parameter_schema: dict) -> bool:
             .get("status", {})
             .get("enum", [])
         )
-        required = set(rule.get("then", {}).get("required", []))
-        if EVIDENCE_BACKED.issubset(set(statuses)) and {
-            "source_id",
-            "derivation",
-            "uncertainty",
-        }.issubset(required):
-            return True
-    return False
+        if EVIDENCE_BACKED.issubset(set(statuses)):
+            required.update(rule.get("then", {}).get("required", []))
+    return {"source_id", "derivation", "uncertainty"}.issubset(required)
 
 
 def main() -> int:
