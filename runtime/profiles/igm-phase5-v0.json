@@ -1,0 +1,46 @@
+{
+  "schema": "IGM-PHASE5-REPRESENTATION-CONFIG-V1",
+  "profile_id": "IGM-PHASE5-V0-REPRESENTATION",
+  "version": "0.1.0",
+  "model_id": "IGM-SCHEMATIC-PENTAMER-V0",
+  "validation_level": "V0",
+  "contact_cutoff": {
+    "value": 0.65,
+    "unit": "model-unit",
+    "status": "assumed",
+    "scientific_interpretation_claimed": false,
+    "notes": "Computational contact threshold for the V0 representation fixture only. It is not a measured molecular-contact cutoff."
+  },
+  "accessibility_clearance": {
+    "value": 0.5,
+    "unit": "model-unit",
+    "status": "assumed",
+    "scientific_interpretation_claimed": false,
+    "notes": "Geometric nearest-neighbour clearance threshold for the V0 fixture. It is not biochemical accessibility."
+  },
+  "ensemble": {
+    "execution_profile_path": "runtime/profiles/igm-penta-crt-cpu-v1.json",
+    "indices": [0, 11704, 23408],
+    "verification_samples": 257,
+    "sampling": "explicit-index-set",
+    "population_variance": true,
+    "status": "assumed",
+    "biological_ensemble_claimed": false,
+    "notes": "Three deterministic synthetic Phase 3B conformations spanning the configured mixed-radix domain. Population statistics describe only this explicit index set."
+  },
+  "tensor_network": {
+    "assessment_enabled": true,
+    "require_exact_reconstruction": true,
+    "require_material_reduction": true,
+    "performance_claim": false,
+    "notes": "A tensor-network candidate is admitted only if exact reconstruction and a material computational/storage reduction are both established."
+  },
+  "vortex_inspired_projection_enabled": false,
+  "claims": {
+    "scientific_interpretation_claimed": false,
+    "biological_validity_claimed": false,
+    "clinical_validity_claimed": false,
+    "performance_claim": false
+  },
+  "notes": "Phase 5 V0 representation configuration. All thresholds and ensemble choices are explicit computational assumptions and cannot promote the V0 model."
+}

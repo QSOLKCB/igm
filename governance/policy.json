@@ -78,6 +78,12 @@
       "name": "Execution Adjacency Does Not Imply Biological Adjacency",
       "normative": true,
       "statement": "Adjacency in scheduler graphs, traversal order, memory layout, warp lanes, worker partitions, chunks, or device assignments is computational metadata only and must not be promoted into biological adjacency, molecular interaction, structural proximity, or causal semantics."
+    },
+    {
+      "id": "INV-REP-001",
+      "name": "Scientific Interpretation Requires Explicit Evidence and Validation",
+      "normative": true,
+      "statement": "A representation earns scientific interpretation only from explicit evidence and validation. Numerical arrays, tensors, graph projections, tensor-factor graphs, ensemble summaries, uncertainty encodings, or optional coordinate projections cannot create scientific authority by representation alone."
     }
   ],
   "biological_parameter_statuses": [
@@ -109,6 +115,7 @@
     "docs/ARCHITECTURE.md",
     "docs/VISUAL_LAB.md",
     "docs/CLEAN_ROOM_VISUALIZATION.md",
-    "docs/EXECUTION_CAMPAIGNS.md"
+    "docs/EXECUTION_CAMPAIGNS.md",
+    "docs/PHASE5_REPRESENTATIONS.md"
   ]
 }

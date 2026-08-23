@@ -7,7 +7,7 @@ description = "Deterministic non-clinical structural research runtime for QSOLKC
 repository = "https://github.com/QSOLKCB/igm"
 
 [lib]
-path = "runtime/rust/src/lib_v5.rs"
+path = "runtime/rust/src/lib_v6.rs"
 
 [[bin]]
 name = "igm-runtime"
@@ -28,6 +28,10 @@ path = "runtime/rust/src/benchmark_main.rs"
 [[bin]]
 name = "igm-evidence"
 path = "runtime/rust/src/evidence_main.rs"
+
+[[bin]]
+name = "igm-represent"
+path = "runtime/rust/src/representation_main.rs"
 
 [dependencies]
 serde = { version = "=1.0.229", features = ["derive"] }
