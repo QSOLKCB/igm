@@ -58,7 +58,7 @@ Read:
 
 before changing model semantics, data handling, medical language, or validation status.
 
-For runtime scheduling, memory-layout, campaign, accelerator, property-fuzz, performance-benchmark, or evidence-adapter changes also read:
+For runtime scheduling, memory-layout, campaign, accelerator, property-fuzz, performance-benchmark, evidence-adapter, or Phase 5 representation changes also read:
 
 - `docs/RUST_RUNTIME.md`
 - `docs/PENTA_CRT_CPU.md`
@@ -102,31 +102,33 @@ If a proposed task requires human participants or their data, stop and identify 
 
 `schemas/model-profile.schema.json` defines the portable structural contract.
 
-`tools/validate_profile.py` is the dependency-free semantic pre-execution gate for cross-field requirements that portable JSON Schema cannot express directly, including uniqueness by component `id`.
+`tools/validate_profile.py` is the dependency-free semantic pre-execution gate for cross-field requirements that portable JSON Schema cannot express directly, including uniqueness by component `id` and uncertainty-kind semantics.
 
-Future runtimes, Pages tools, and accelerator paths must reject a profile that fails either structural/schema validation or the semantic pre-execution gate. Do not bypass the validator because a renderer or kernel could otherwise consume the data.
+Future runtimes, Pages tools, Phase 5 projections, and accelerator paths must reject a profile that fails either structural/schema validation or the semantic pre-execution gate. Do not bypass the validator because a renderer, tensor projection, graph adapter, or kernel could otherwise consume the data.
 
 ## Phase 4 evidence ingestion
 
 **Phase 4 gate: Source ingestion must not silently convert observations into stronger claims than the source supports.**
 
-`IGM-SOURCE-ADAPTER-V1` is the replaceable source-adapter boundary.
+`IGM-SOURCE-ADAPTER-V1` is the replaceable source-adapter boundary and is merged on `main` through PR #9.
 
 All evidence-adapter work must preserve these rules:
 
 - The source must resolve in `research/sources.json`.
 - Structural source records must retain DOI/PDB/EMDB identifiers where available and must retain access/redistribution guidance.
-- Adapter input must cite a `support_statement` that exactly matches a registered source `supports` statement.
+- A support statement alone is not sufficient to authorize an emitted parameter or constraint. Direct machine-readable claim bindings must constrain the target, admissible value/unit contract, and derivation where required.
 - Adapters derive output evidence status from the declared transformation. Callers do not get to relabel transformed evidence as direct observation.
-- Evidence-backed parameters require explicit uncertainty. `unknown` or `source-reported` uncertainty requires explanatory notes; do not invent zero uncertainty.
+- Evidence-backed parameters require explicit uncertainty. Kind-specific requirements must be enforced; `unknown` or `source-reported` uncertainty requires explanatory notes, intervals require bounds, and standard deviation may not be negative.
 - Cryo-EM, molecular-dynamics, and biochemical/calibration adapters remain separately named contracts.
 - Conflict and unknown states must be preserved. Do not average, vote, or force reconciliation in the ingestion layer.
+- Identical candidate identities must not be counted as independent corroboration. Reject duplicates before concordance/conflict classification.
 - Snapshot default is `reference-only`. Hash-only or packaged source material requires the explicit source snapshot policy to permit that mode.
-- A packaged external payload requires verified redistribution permission and a SHA-256 identity.
+- A packaged external payload requires verified redistribution permission, a repository-relative payload path, and SHA-256 verification over the actual committed bytes.
 - Preserve `does_not_support` limitations in adapted evidence records.
 - Source ingestion may not promote validation level, biological validity, or clinical validity.
 - `research/v0-implementation-constants.json` is V0-only. Source-informed profiles may not silently inherit those assumed drawing constants as biology.
 - Adapter success is provenance/normalization evidence only. It is not independent biological validation.
+- Phase 4 JSON instances must satisfy their declared schemas, including `additionalProperties=false`; runtime parsing must not silently ignore unknown fields.
 
 ## Execution and campaign semantics
 
@@ -138,7 +140,7 @@ All evidence-adapter work must preserve these rules:
 - Correctness identity must remain separate from benchmark/timing identity.
 - Worker count, chunk count, and memory budget may affect the manifest/benchmark but must not silently alter a worker/chunk-independent correctness result for the same admitted numerical profile and conformation slice.
 - Rejected campaigns should be preserved with their failure reason and must not be relabelled as accepted evidence.
-- Environment receipts must omit hostname, username, raw GPU UUIDs, serial numbers, MAC addresses, and similar machine identifiers by default.
+- Environment receipts must omit hostname, username, raw GPU UUIDs, serials, MAC addresses, and similar machine identifiers by default.
 
 ## Property-based fuzzing
 
@@ -171,9 +173,9 @@ All evidence-adapter work must preserve these rules:
 
 `docs/PRE_PHASE5_READINESS.md` is normative project sequencing guidance.
 
-On the Phase 4 PR branch the state is `READY_ON_PHASE4_MERGE`. Do not claim `READY_ON_MAIN` until the Phase 4 PR has actually merged with its evidence-adapter CI green.
+Phase 4 merged in PR #9 with its evidence-adapter CI green, so the architectural state is `READY_ON_MAIN`.
 
-Phase 5 representation work must consume the Phase 4 source/provenance contracts rather than bypass them.
+This means Phase 5 representation work may begin from `main`, but only by consuming the Phase 4 source/provenance contracts rather than bypassing them. `READY_ON_MAIN` is not a biological-validation status and does not mean a V1 IgM model exists.
 
 ## Validation
 
@@ -247,7 +249,7 @@ Phase 3C campaign changes must additionally exercise and validate an accepted ca
 python3 tools/validate_campaign.py CAMPAIGN_DIR
 ```
 
-Phase 4 evidence/source changes must additionally run:
+Phase 4 evidence/source changes and Phase 5 work that consumes evidence contracts must additionally run:
 
 ```bash
 python3 tools/validate_sources.py --self-test
