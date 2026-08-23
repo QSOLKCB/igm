@@ -85,7 +85,7 @@ def main() -> int:
         "IGM-PHASE4-EVIDENCE-BUNDLE-V1",
         "reference-only",
         "duplicate candidate identities",
-        "actual committed bytes",
+        "actual bytes",
         PHASE4_GATE,
     ):
         if fragment not in evidence_doc:
