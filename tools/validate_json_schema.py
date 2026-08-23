@@ -181,7 +181,7 @@ def validate(value: Any, schema: dict[str, Any], root: dict[str, Any], path: str
     if isinstance(value, str):
         if "minLength" in schema and len(value) < schema["minLength"]:
             raise ValidationError(f"{path}: string shorter than minLength")
-        if "pattern" in schema and re.fullmatch(schema["pattern"], value) is None:
+        if "pattern" in schema and re.search(schema["pattern"], value) is None:
             raise ValidationError(f"{path}: string does not match pattern")
 
     if isinstance(value, list):
@@ -250,6 +250,8 @@ def self_test() -> None:
     else:
         raise ValidationError("self-test failed minimum enforcement")
     validate("x", {"anyOf": [{"type": "string"}, {"type": "number"}]}, {"anyOf": [{"type": "string"}, {"type": "number"}]})
+    if re.search(r"^https://", "https://example.test/path") is None:
+        raise ValidationError("self-test failed JSON Schema regex search semantics")
     try:
         audit_schema({"oneOf": [{"type": "string"}]}, "$self-test")
     except ValidationError:
