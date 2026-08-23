@@ -15,7 +15,7 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 const BUNDLE_DOMAIN: &[u8] = b"IGM-PHASE5-REPRESENTATION-V1\0";
 const MAX_EXECUTION_PROFILE_BYTES: u64 = 64 * 1024;
@@ -110,6 +110,7 @@ fn run_schema_gate(
         .arg(&schema)
         .arg(instance)
         .current_dir(&root)
+        .stdout(Stdio::null())
         .status()
         .map_err(|e| err(format!("cannot execute Phase 5 JSON-Schema gate: {e}")))?;
     if !status.success() {
