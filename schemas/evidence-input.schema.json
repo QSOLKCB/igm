@@ -38,9 +38,7 @@
     },
     "value": {},
     "unit": {"type": ["string", "null"]},
-    "derivation": {
-      "enum": ["direct", "transformed", "calibrated", "inferred", "assumed", "unknown"]
-    },
+    "derivation": {"enum": ["direct", "transformed", "calibrated", "inferred", "assumed", "unknown"]},
     "uncertainty": {"$ref": "#/$defs/uncertainty"},
     "snapshot": {"$ref": "#/$defs/snapshot"},
     "notes": {"type": "string"}
@@ -51,16 +49,28 @@
       "additionalProperties": false,
       "required": ["kind"],
       "properties": {
-        "kind": {
-          "enum": ["unknown", "interval", "standard-deviation", "confidence-interval", "source-reported"]
-        },
+        "kind": {"enum": ["unknown", "interval", "standard-deviation", "confidence-interval", "source-reported"]},
         "lower": {"type": ["number", "integer", "null"]},
         "upper": {"type": ["number", "integer", "null"]},
-        "value": {"type": ["number", "integer", "null"]},
-        "level": {"type": ["number", "integer", "null"]},
+        "value": {"type": ["number", "integer", "null"], "minimum": 0},
+        "level": {"type": ["number", "integer", "null"], "minimum": 0, "maximum": 1},
         "unit": {"type": ["string", "null"]},
-        "notes": {"type": "string"}
-      }
+        "notes": {"type": "string", "minLength": 1}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"kind": {"enum": ["unknown", "source-reported"]}}, "required": ["kind"]},
+          "then": {"required": ["notes"]}
+        },
+        {
+          "if": {"properties": {"kind": {"enum": ["interval", "confidence-interval"]}}, "required": ["kind"]},
+          "then": {"required": ["lower", "upper"]}
+        },
+        {
+          "if": {"properties": {"kind": {"const": "standard-deviation"}}, "required": ["kind"]},
+          "then": {"required": ["value"]}
+        }
+      ]
     },
     "snapshot": {
       "type": "object",
@@ -69,10 +79,17 @@
       "properties": {
         "mode": {"enum": ["reference-only", "hash-only", "packaged"]},
         "external_payload_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+        "external_payload_path": {"type": ["string", "null"], "minLength": 1},
         "external_payload_committed": {"type": "boolean"},
         "redistribution_permission_verified": {"type": "boolean"},
         "notes": {"type": "string"}
-      }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"mode": {"const": "packaged"}}, "required": ["mode"]},
+          "then": {"required": ["external_payload_sha256", "external_payload_path"]}
+        }
+      ]
     }
   }
 }
