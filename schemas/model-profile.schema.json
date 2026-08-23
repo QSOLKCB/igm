@@ -75,9 +75,13 @@
           {
             "if": {"properties": {"status": {"enum": ["observed", "source-derived", "calibrated"]}}, "required": ["status"]},
             "then": {
-              "required": ["source_id", "derivation", "uncertainty"],
+              "required": ["source_id", "derivation"],
               "properties": {"source_id": {"type": "string", "minLength": 1}}
             }
+          },
+          {
+            "if": {"properties": {"status": {"enum": ["observed", "source-derived", "calibrated"]}}, "required": ["status"]},
+            "then": {"required": ["uncertainty"]}
           },
           {
             "if": {"properties": {"status": {"const": "observed"}}, "required": ["status"]},
