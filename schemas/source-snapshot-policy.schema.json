@@ -26,8 +26,15 @@
           "redistribution_permission_verified": {"type": "boolean"},
           "external_payload_committed": {"type": "boolean"},
           "external_payload_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+          "external_payload_path": {"type": ["string", "null"], "minLength": 1},
           "reason": {"type": "string", "minLength": 1}
-        }
+        },
+        "allOf": [
+          {
+            "if": {"properties": {"mode": {"const": "packaged"}}, "required": ["mode"]},
+            "then": {"required": ["external_payload_sha256", "external_payload_path"]}
+          }
+        ]
       }
     }
   }
