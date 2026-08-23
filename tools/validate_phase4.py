@@ -9,6 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PHASE4_GATE = "Source ingestion must not silently convert observations into stronger claims than the source supports."
+EVIDENCE_BACKED = {"observed", "source-derived", "calibrated"}
 
 REQUIRED_FILES = [
     "docs/EVIDENCE_ADAPTERS.md",
@@ -21,9 +22,11 @@ REQUIRED_FILES = [
     "research/v0-implementation-constants.json",
     "research/evidence/cryo-em-pentamer-count.json",
     "runtime/rust/src/phase4.rs",
+    "runtime/rust/src/phase4_v2.rs",
     "runtime/rust/src/evidence_main.rs",
     "runtime/rust/src/lib_v5.rs",
     "tools/validate_sources.py",
+    "tools/validate_json_schema.py",
 ]
 
 PHASE4_CHECKBOXES = [
@@ -50,6 +53,20 @@ def load_json(relative: str):
         return json.loads((ROOT / relative).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         fail(f"{relative}: {exc}")
+
+
+def uncertainty_requirement_present(parameter_schema: dict) -> bool:
+    for rule in parameter_schema.get("allOf", []):
+        condition = rule.get("if", {})
+        statuses = (
+            condition.get("properties", {})
+            .get("status", {})
+            .get("enum", [])
+        )
+        required = set(rule.get("then", {}).get("required", []))
+        if EVIDENCE_BACKED.issubset(set(statuses)) and "uncertainty" in required:
+            return True
+    return False
 
 
 def main() -> int:
@@ -84,8 +101,6 @@ def main() -> int:
     readiness = (ROOT / "docs/PRE_PHASE5_READINESS.md").read_text(encoding="utf-8")
     if "Status: **READY_ON_PHASE4_MERGE**." not in readiness:
         fail("pre-Phase 5 readiness must be READY_ON_PHASE4_MERGE on this branch")
-    # The document may discuss the string READY_ON_MAIN as a future state. Only
-    # reject an actual readiness-status promotion before the Phase 4 merge.
     if "Status: **READY_ON_MAIN**." in readiness:
         fail("Phase 5 readiness must not claim READY_ON_MAIN before Phase 4 merge")
 
@@ -93,9 +108,42 @@ def main() -> int:
     parameter_schema = model_schema["properties"]["parameters"]["items"]
     if "uncertainty" not in parameter_schema.get("properties", {}):
         fail("model profile schema must define evidence uncertainty")
-    schema_text = (ROOT / "schemas/model-profile.schema.json").read_text(encoding="utf-8")
-    if '"required": ["uncertainty"]' not in schema_text:
-        fail("evidence-backed parameters must require uncertainty")
+    if not uncertainty_requirement_present(parameter_schema):
+        fail("evidence-backed parameters must structurally require uncertainty")
+    uncertainty = model_schema.get("$defs", {}).get("evidenceUncertainty", {})
+    rules = uncertainty.get("allOf", [])
+    rule_text = json.dumps(rules, sort_keys=True)
+    for required_fragment in ('"lower"', '"upper"', '"notes"', '"value"'):
+        if required_fragment not in rule_text:
+            fail(f"evidence uncertainty kind rules missing {required_fragment}")
+    if uncertainty.get("properties", {}).get("value", {}).get("minimum") != 0:
+        fail("standard-deviation uncertainty must have a non-negative numeric floor")
+
+    source_schema = load_json("schemas/source-registry.schema.json")
+    if source_schema.get("properties", {}).get("schema", {}).get("const") != "igm-source-registry/1":
+        fail("source registry schema contract mismatch")
+    source_def = source_schema.get("$defs", {}).get("source", {})
+    if source_def.get("additionalProperties") is not False:
+        fail("source registry entries must reject unknown fields")
+    if "evidence_mappings" not in source_def.get("properties", {}):
+        fail("source registry must bind support statements to structured evidence mappings")
+
+    evidence_input = load_json("schemas/evidence-input.schema.json")
+    if evidence_input.get("properties", {}).get("schema", {}).get("const") != "IGM-EVIDENCE-INPUT-V1":
+        fail("evidence input schema contract mismatch")
+    snapshot_def = evidence_input.get("$defs", {}).get("snapshot", {})
+    if "external_payload_path" not in snapshot_def.get("properties", {}):
+        fail("packaged evidence input must support a repository-relative payload path")
+
+    snapshot_schema = load_json("schemas/source-snapshot-policy.schema.json")
+    record_props = (
+        snapshot_schema.get("properties", {})
+        .get("records", {})
+        .get("items", {})
+        .get("properties", {})
+    )
+    if "external_payload_path" not in record_props:
+        fail("snapshot policy must bind packaged payload path as well as digest")
 
     v0 = load_json("research/v0-implementation-constants.json")
     if v0.get("source_informed_inheritance") != "forbidden":
@@ -105,18 +153,12 @@ def main() -> int:
     if snapshot.get("default_mode") != "reference-only":
         fail("Phase 4 snapshot policy must fail closed to reference-only")
 
-    source_schema = load_json("schemas/source-registry.schema.json")
-    if source_schema.get("properties", {}).get("schema", {}).get("const") != "igm-source-registry/1":
-        fail("source registry schema contract mismatch")
-
-    evidence_input = load_json("schemas/evidence-input.schema.json")
-    if evidence_input.get("properties", {}).get("schema", {}).get("const") != "IGM-EVIDENCE-INPUT-V1":
-        fail("evidence input schema contract mismatch")
-
     bundle_schema = load_json("schemas/evidence-bundle.schema.json")
     props = bundle_schema.get("properties", {})
     if props.get("bundle_contract", {}).get("const") != "IGM-PHASE4-EVIDENCE-BUNDLE-V1":
         fail("evidence bundle contract mismatch")
+    if props.get("inv_bio_001", {}).get("const") != "Perfect Mathematics Does Not Equal Perfect Biological Reality":
+        fail("evidence bundle schema must declare INV-BIO-001 emitted by runtime")
     for key in (
         "reconciliation_performed",
         "claim_strengthening_detected",
