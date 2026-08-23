@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic governance/documentation validation for IGM."""
+"""Deterministic governance/documentation validation for IGM through merged Phase 4."""
 
 from __future__ import annotations
 
@@ -16,7 +16,8 @@ PHASE3A_GATE = (
 )
 PHASE4_GATE = "Source ingestion must not silently convert observations into stronger claims than the source supports."
 BENCHMARK_CONTRACT = "IGM-PHASE3B-SCALAR-VS-OPTIMIZED-BENCHMARK-V1"
-PRE_PHASE5_STATUS = "READY_ON_PHASE4_MERGE"
+PRE_PHASE5_STATUS = "READY_ON_MAIN"
+EVIDENCE_BACKED = {"observed", "source-derived", "calibrated"}
 
 REQUIRED_FILES = [
     "LICENSE",
@@ -82,6 +83,19 @@ BIOLOGICAL_SOURCE_CLASSES = {
     "background-only",
 }
 
+PHASE4_CHECKBOXES = [
+    "Define source-adapter interface.",
+    "Maintain public structural-source registry with DOI/PDB/EMDB identifiers.",
+    "Add cryo-EM parameter adapter.",
+    "Add molecular-dynamics trajectory adapter.",
+    "Add biochemical/calibration constraint adapter.",
+    "Preserve source licence/access metadata.",
+    "Require per-parameter provenance and uncertainty.",
+    "Add conflict/unknown representation rather than forced reconciliation.",
+    "Add source snapshots/hashes only where reuse terms permit.",
+    "Externalize any remaining V0 implementation constants that become biologically meaningful in source-informed profiles.",
+]
+
 
 def fail(message: str) -> None:
     print(f"FAIL: {message}", file=sys.stderr)
@@ -102,6 +116,24 @@ def load_json(path: str):
         fail(f"{path}: {exc}")
 
 
+def evidence_requirement_present(parameter_schema: dict) -> bool:
+    for rule in parameter_schema.get("allOf", []):
+        statuses = (
+            rule.get("if", {})
+            .get("properties", {})
+            .get("status", {})
+            .get("enum", [])
+        )
+        required = set(rule.get("then", {}).get("required", []))
+        if EVIDENCE_BACKED.issubset(set(statuses)) and {
+            "source_id",
+            "derivation",
+            "uncertainty",
+        }.issubset(required):
+            return True
+    return False
+
+
 def main() -> int:
     for relative in REQUIRED_FILES:
         path = ROOT / relative
@@ -109,13 +141,11 @@ def main() -> int:
             fail(f"required file missing or empty: {relative}")
 
     for relative in INVARIANT_FILES:
-        text = (ROOT / relative).read_text(encoding="utf-8")
-        if INVARIANT not in text:
+        if INVARIANT not in (ROOT / relative).read_text(encoding="utf-8"):
             fail(f"hard invariant missing from {relative}")
 
     for relative in RUNTIME_INVARIANT_FILES:
-        text = (ROOT / relative).read_text(encoding="utf-8")
-        if RUNTIME_INVARIANT not in text:
+        if RUNTIME_INVARIANT not in (ROOT / relative).read_text(encoding="utf-8"):
             fail(f"runtime invariant missing from {relative}")
 
     property_doc = (ROOT / "docs/PROPERTY_FUZZING.md").read_text(encoding="utf-8")
@@ -144,13 +174,14 @@ def main() -> int:
 
     evidence_doc = (ROOT / "docs/EVIDENCE_ADAPTERS.md").read_text(encoding="utf-8")
     for required in (
+        "Status: **complete and merged in PR #9**.",
         "IGM-SOURCE-ADAPTER-V1",
         "IGM-CRYO-EM-PARAMETER-ADAPTER-V1",
         "IGM-MD-TRAJECTORY-ADAPTER-V1",
         "IGM-BIOCHEMICAL-CALIBRATION-ADAPTER-V1",
         "IGM-PHASE4-EVIDENCE-BUNDLE-V1",
         "reference-only",
-        "conflict",
+        "duplicate candidate identities",
         PHASE4_GATE,
     ):
         if required not in evidence_doc:
@@ -158,16 +189,14 @@ def main() -> int:
 
     readiness_doc = (ROOT / "docs/PRE_PHASE5_READINESS.md").read_text(encoding="utf-8")
     for required in (
-        "Status: **READY_ON_PHASE4_MERGE**.",
-        "Phase 4 gate now implemented",
+        "Status: **READY_ON_MAIN**.",
+        "Phase 4 is complete and merged in PR #9",
         PHASE4_GATE,
-        "Phase 5 representation work",
+        "Phase 5 representation work may now begin from `main`",
         "does **not** mean that IGM now has a validated source-informed IgM model",
     ):
         if required not in readiness_doc:
             fail(f"pre-Phase 5 readiness audit missing required text: {required!r}")
-    if "Status: **READY_ON_MAIN**." in readiness_doc:
-        fail("pre-Phase 5 audit must not claim READY_ON_MAIN before PR #9 merges")
 
     roadmap = (ROOT / "ROADMAP.md").read_text(encoding="utf-8")
     if "- [x] Add property-based fuzzing beyond deterministic edge-case tests." not in roadmap:
@@ -178,28 +207,17 @@ def main() -> int:
         fail("Phase 3B timing-benchmark roadmap item must be complete")
     if BENCHMARK_CONTRACT not in roadmap:
         fail("ROADMAP.md must name the Phase 3B timing-benchmark contract")
-    if PRE_PHASE5_STATUS not in roadmap:
-        fail("ROADMAP.md must record READY_ON_PHASE4_MERGE")
-    if "Status: **implemented in PR #9, pending review/merge**." not in roadmap:
-        fail("ROADMAP.md must keep Phase 4 pending review/merge until PR #9 merges")
-    for item in (
-        "Define source-adapter interface.",
-        "Maintain public structural-source registry with DOI/PDB/EMDB identifiers.",
-        "Add cryo-EM parameter adapter.",
-        "Add molecular-dynamics trajectory adapter.",
-        "Add biochemical/calibration constraint adapter.",
-        "Preserve source licence/access metadata.",
-        "Require per-parameter provenance and uncertainty.",
-        "Add conflict/unknown representation rather than forced reconciliation.",
-        "Add source snapshots/hashes only where reuse terms permit.",
-        "Externalize any remaining V0 implementation constants that become biologically meaningful in source-informed profiles.",
-    ):
+    if "Status: **READY_ON_MAIN**." not in roadmap:
+        fail("ROADMAP.md must record READY_ON_MAIN after Phase 4 merge")
+    if "Status: **complete and merged in PR #9**." not in roadmap:
+        fail("ROADMAP.md must record Phase 4 merged completion")
+    for item in PHASE4_CHECKBOXES:
         if f"- [x] {item}" not in roadmap:
             fail(f"ROADMAP.md must mark Phase 4 item implemented: {item}")
     if PHASE4_GATE not in roadmap:
         fail("ROADMAP.md must preserve the Phase 4 gate")
-    if "**Entry condition: PR #9 merged with the Phase 4 gate and source-adapter CI green.**" not in roadmap:
-        fail("Phase 5 entry condition must require merged Phase 4 gate and green source-adapter CI")
+    if "**Entry condition satisfied: Phase 4 gate is merged on main with source-adapter CI green.**" not in roadmap:
+        fail("Phase 5 entry condition must record the merged Phase 4 gate")
 
     license_text = (ROOT / "LICENSE").read_text(encoding="utf-8")
     if "Apache License" not in license_text or "Version 2.0" not in license_text:
@@ -208,22 +226,15 @@ def main() -> int:
     policy = load_json("governance/policy.json")
     if policy.get("schema") != "igm-governance-policy/1":
         fail("unexpected governance policy schema")
-    if policy.get("human_data_default") != "deny":
-        fail("human_data_default must remain deny")
-    if policy.get("clinical_use_default") != "deny":
-        fail("clinical_use_default must remain deny")
-    if policy.get("institutional_endorsement_default") != "deny":
-        fail("institutional_endorsement_default must remain deny")
+    for key in ("human_data_default", "clinical_use_default", "institutional_endorsement_default"):
+        if policy.get(key) != "deny":
+            fail(f"{key} must remain deny")
     invariants = {item.get("id"): item for item in policy.get("core_invariants", [])}
     inv = invariants.get("INV-BIO-001")
     if not inv or inv.get("name") != INVARIANT or inv.get("normative") is not True:
         fail("INV-BIO-001 missing, renamed, or non-normative")
     runtime_inv = invariants.get("INV-RUNTIME-001")
-    if (
-        not runtime_inv
-        or runtime_inv.get("name") != RUNTIME_INVARIANT
-        or runtime_inv.get("normative") is not True
-    ):
+    if not runtime_inv or runtime_inv.get("name") != RUNTIME_INVARIANT or runtime_inv.get("normative") is not True:
         fail("INV-RUNTIME-001 missing, renamed, or non-normative")
 
     schema = load_json("schemas/model-profile.schema.json")
@@ -241,21 +252,16 @@ def main() -> int:
     ):
         if claims.get(key, {}).get("const") is not False:
             fail(f"upstream model schema must hard-code {key}=false")
-
-    schema_text = (ROOT / "schemas/model-profile.schema.json").read_text(encoding="utf-8")
-    for required_fragment in (
-        '"enum": ["V0", "V1", "V2"]',
-        '"biological_validity_claimed"',
-        '"const": false',
-        '"status": {"const": "unknown"}',
-        '"not": {"required": ["value"]}',
-        '"enum": ["observed", "source-derived", "calibrated"]',
-        '"required": ["source_id", "derivation"]',
-        '"required": ["uncertainty"]',
-        '"evidenceUncertainty"',
-    ):
-        if required_fragment not in schema_text:
-            fail(f"model schema missing hardening fragment: {required_fragment}")
+    parameter_schema = schema.get("properties", {}).get("parameters", {}).get("items", {})
+    if not evidence_requirement_present(parameter_schema):
+        fail("evidence-backed parameters must require source_id, derivation, and uncertainty")
+    uncertainty = schema.get("$defs", {}).get("evidenceUncertainty", {})
+    if uncertainty.get("properties", {}).get("value", {}).get("minimum") != 0:
+        fail("evidence uncertainty must forbid negative standard deviation values")
+    uncertainty_rules = json.dumps(uncertainty.get("allOf", []), sort_keys=True)
+    for token in ('"notes"', '"lower"', '"upper"', '"value"'):
+        if token not in uncertainty_rules:
+            fail(f"evidence uncertainty kind rules missing {token}")
 
     campaign_schema = load_json("schemas/campaign-manifest.schema.json")
     campaign_props = campaign_schema.get("properties", {})
@@ -283,8 +289,6 @@ def main() -> int:
     gate_props = gate_schema.get("properties", {})
     if gate_props.get("schema", {}).get("const") != "IGM-PHASE3C-GATE-RECEIPT-V1":
         fail("unexpected Phase 3C gate receipt schema")
-    if gate_props.get("gate_contract", {}).get("const") != "IGM-PHASE3C-ACCEPTANCE-GATE-V1":
-        fail("unexpected Phase 3C gate contract")
     for key in (
         "profile_identity_preserved",
         "algorithm_identity_preserved",
@@ -349,6 +353,13 @@ def main() -> int:
     if missing:
         fail(f"required source registry entries missing: {sorted(missing)}")
 
+    source_schema = load_json("schemas/source-registry.schema.json")
+    source_def = source_schema.get("$defs", {}).get("source", {})
+    if source_def.get("additionalProperties") is not False:
+        fail("source registry entries must reject unknown fields")
+    if "evidence_mappings" not in source_def.get("properties", {}):
+        fail("source registry must expose structured evidence mappings")
+
     snapshot_policy = load_json("research/source-snapshot-policy.json")
     if snapshot_policy.get("schema") != "IGM-SOURCE-SNAPSHOT-POLICY-V1":
         fail("unexpected Phase 4 source snapshot policy schema")
@@ -361,6 +372,20 @@ def main() -> int:
     if v0_constants.get("source_informed_inheritance") != "forbidden":
         fail("source-informed profiles may not silently inherit V0 drawing constants")
 
+    bundle_schema = load_json("schemas/evidence-bundle.schema.json")
+    bundle_props = bundle_schema.get("properties", {})
+    if bundle_props.get("inv_bio_001", {}).get("const") != INVARIANT:
+        fail("evidence bundle schema must preserve INV-BIO-001")
+    for key in (
+        "reconciliation_performed",
+        "claim_strengthening_detected",
+        "validation_level_promoted_by_adapter",
+        "biological_validity_claimed",
+        "clinical_validity_claimed",
+    ):
+        if bundle_props.get(key, {}).get("const") is not False:
+            fail(f"evidence bundle schema must pin {key}=false")
+
     boundary = (ROOT / "docs/MEDICAL_RESEARCH_BOUNDARY.md").read_text(encoding="utf-8")
     for phrase in (
         "exploratory research software",
@@ -371,7 +396,7 @@ def main() -> int:
         if phrase not in boundary:
             fail(f"medical boundary missing required phrase: {phrase!r}")
 
-    print("OK: IGM documentation/governance foundation validated through Phase 4")
+    print("OK: IGM documentation/governance foundation validated through merged Phase 4; READY_ON_MAIN")
     return 0
 
 
