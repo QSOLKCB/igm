@@ -42,25 +42,39 @@
     "representation_contract": {"const": "IGM-PHASE5-REPRESENTATION-V1"},
     "model_id": {"const": "IGM-SCHEMATIC-PENTAMER-V0"},
     "validation_level": {"const": "V0"},
-    "model_profile_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "representation_config_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "model_profile_sha256": {"$ref": "#/$defs/hash"},
+    "representation_config_sha256": {"$ref": "#/$defs/hash"},
     "representation_config_id": {"const": "IGM-PHASE5-V0-REPRESENTATION"},
     "phase4_source_adapter_contract": {"const": "IGM-SOURCE-ADAPTER-V1"},
     "phase4_boundary_consumed": {"const": true},
-    "arrays": {"type": "array", "minItems": 2, "items": {"type": "object"}},
-    "centered_coordinate_tensor": {"type": "object"},
-    "model_graph": {"type": "object"},
-    "model_hypergraph": {"type": "object"},
-    "provenance_graph": {"type": "object"},
-    "tensor_factor_graph": {"type": "object"},
-    "visualization_graph": {"type": "object"},
-    "graph_separation": {"type": "object"},
-    "observables": {"type": "object"},
-    "ensemble_statistics": {"type": "object"},
-    "uncertainties": {"type": "object"},
-    "tensor_network_assessment": {"type": "object"},
-    "vortex_projection": {"type": ["object", "null"]},
-    "gate": {"type": "object"},
+    "arrays": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "anyOf": [
+          {"$ref": "#/$defs/positionArray"},
+          {"$ref": "#/$defs/pairDistanceArray"}
+        ]
+      }
+    },
+    "centered_coordinate_tensor": {"$ref": "#/$defs/declaredTensor"},
+    "model_graph": {"$ref": "#/$defs/modelGraph"},
+    "model_hypergraph": {"$ref": "#/$defs/modelHypergraph"},
+    "provenance_graph": {"$ref": "#/$defs/provenanceGraph"},
+    "tensor_factor_graph": {"$ref": "#/$defs/tensorFactorGraph"},
+    "visualization_graph": {"$ref": "#/$defs/visualizationGraph"},
+    "graph_separation": {"$ref": "#/$defs/graphSeparation"},
+    "observables": {"$ref": "#/$defs/observables"},
+    "ensemble_statistics": {"$ref": "#/$defs/ensembleStatistics"},
+    "uncertainties": {"$ref": "#/$defs/uncertainties"},
+    "tensor_network_assessment": {"$ref": "#/$defs/tensorNetworkAssessment"},
+    "vortex_projection": {
+      "anyOf": [
+        {"$ref": "#/$defs/vortexProjection"},
+        {"type": "null"}
+      ]
+    },
+    "gate": {"$ref": "#/$defs/gate"},
     "scientific_interpretation_claimed": {"const": false},
     "biological_validity_claimed": {"const": false},
     "clinical_validity_claimed": {"const": false},
@@ -68,6 +82,429 @@
     "inv_bio_001": {"const": "Perfect Mathematics Does Not Equal Perfect Biological Reality"},
     "inv_math_002": {"const": "A Multidimensional Array Is Not Automatically a Tensor"},
     "phase5_gate": {"const": "A representation earns scientific interpretation only from explicit evidence and validation"},
-    "bundle_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+    "bundle_sha256": {"$ref": "#/$defs/hash"}
+  },
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "string": {
+      "type": "string",
+      "minLength": 1
+    },
+    "componentIds": {
+      "type": "array",
+      "minItems": 16,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/string"}
+    },
+    "positionArray": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract", "name", "shape", "axis_labels", "component_ids", "data", "layout", "tensor_claimed", "semantics", "scientific_interpretation_claimed"],
+      "properties": {
+        "contract": {"const": "IGM-NUMERICAL-ARRAY-PROJECTION-V1"},
+        "name": {"const": "cartesian-position-array"},
+        "shape": {"const": [16, 3]},
+        "axis_labels": {"const": ["component", "cartesian-coordinate"]},
+        "component_ids": {"$ref": "#/$defs/componentIds"},
+        "data": {"type": "array", "minItems": 48, "items": {"type": "number"}},
+        "layout": {"const": "row-major"},
+        "tensor_claimed": {"const": false},
+        "semantics": {"$ref": "#/$defs/string"},
+        "scientific_interpretation_claimed": {"const": false}
+      }
+    },
+    "pairDistanceArray": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract", "name", "shape", "axis_labels", "component_ids", "data", "layout", "tensor_claimed", "semantics", "scientific_interpretation_claimed"],
+      "properties": {
+        "contract": {"const": "IGM-NUMERICAL-ARRAY-PROJECTION-V1"},
+        "name": {"const": "pair-distance-squared-array"},
+        "shape": {"const": [16, 16]},
+        "axis_labels": {"const": ["left-component", "right-component"]},
+        "component_ids": {"$ref": "#/$defs/componentIds"},
+        "data": {"type": "array", "minItems": 256, "items": {"type": "number"}},
+        "layout": {"const": "row-major"},
+        "tensor_claimed": {"const": false},
+        "semantics": {"$ref": "#/$defs/string"},
+        "scientific_interpretation_claimed": {"const": false}
+      }
+    },
+    "transformSemantics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["component_axis", "coordinate_axis", "translation_behavior", "scalar_field", "exact_semantics_declared"],
+      "properties": {
+        "component_axis": {"$ref": "#/$defs/string"},
+        "coordinate_axis": {"$ref": "#/$defs/string"},
+        "translation_behavior": {"$ref": "#/$defs/string"},
+        "scalar_field": {"const": "R/f64"},
+        "exact_semantics_declared": {"const": true}
+      }
+    },
+    "declaredTensor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract", "name", "rank", "shape", "component_ids", "coordinate_labels", "data", "transform_semantics", "tensor_claimed", "scientific_interpretation_claimed"],
+      "properties": {
+        "contract": {"const": "IGM-DECLARED-TENSOR-V1"},
+        "name": {"const": "centered-cartesian-coordinate-tensor"},
+        "rank": {"const": 2},
+        "shape": {"const": [16, 3]},
+        "component_ids": {"$ref": "#/$defs/componentIds"},
+        "coordinate_labels": {"const": ["x", "y", "z"]},
+        "data": {"type": "array", "minItems": 48, "items": {"type": "number"}},
+        "transform_semantics": {"$ref": "#/$defs/transformSemantics"},
+        "tensor_claimed": {"const": true},
+        "scientific_interpretation_claimed": {"const": false}
+      }
+    },
+    "graphNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "node_type", "source_status"],
+      "properties": {
+        "id": {"$ref": "#/$defs/string"},
+        "node_type": {"$ref": "#/$defs/string"},
+        "source_status": {"type": ["string", "null"], "minLength": 1}
+      }
+    },
+    "graphEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "target", "relationship_type", "derived", "biological_relationship_claimed"],
+      "properties": {
+        "source": {"$ref": "#/$defs/string"},
+        "target": {"$ref": "#/$defs/string"},
+        "relationship_type": {"$ref": "#/$defs/string"},
+        "derived": {"type": "boolean"},
+        "biological_relationship_claimed": {"const": false}
+      }
+    },
+    "modelGraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract", "name", "namespace", "nodes", "edges", "scientific_interpretation_claimed"],
+      "properties": {
+        "contract": {"const": "IGM-MODEL-GRAPH-V1"},
+        "name": {"const": "model-graph"},
+        "namespace": {"const": "model"},
+        "nodes": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/graphNode"}},
+        "edges": {"type": "array", "items": {"$ref": "#/$defs/graphEdge"}},
+        "scientific_interpretation_claimed": {"const": false}
+      }
+    },
+    "provenanceGraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract", "name", "namespace", "nodes", "edges", "scientific_interpretation_claimed"],
+      "properties": {
+        "contract": {"const": "IGM-PROVENANCE-GRAPH-V1"},
+        "name": {"const": "provenance-graph"},
+        "namespace": {"const": "provenance"},
+        "nodes": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/graphNode"}},
+        "edges": {"type": "array", "items": {"$ref": "#/$defs/graphEdge"}},
+        "scientific_interpretation_claimed": {"const": false}
+      }
+    },
+    "visualizationGraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract", "name", "namespace", "nodes", "edges", "scientific_interpretation_claimed"],
+      "properties": {
+        "contract": {"const": "IGM-VISUALIZATION-GRAPH-V1"},
+        "name": {"const": "visualization-graph"},
+        "namespace": {"const": "visualization"},
+        "nodes": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/graphNode"}},
+        "edges": {"type": "array", "items": {"$ref": "#/$defs/graphEdge"}},
+        "scientific_interpretation_claimed": {"const": false}
+      }
+    },
+    "hyperedge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "relationship_type", "participants", "status", "source_ids", "biological_relationship_claimed"],
+      "properties": {
+        "id": {"$ref": "#/$defs/string"},
+        "relationship_type": {"$ref": "#/$defs/string"},
+        "participants": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/string"}},
+        "status": {"$ref": "#/$defs/string"},
+        "source_ids": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/string"}},
+        "biological_relationship_claimed": {"const": false}
+      }
+    },
+    "modelHypergraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract", "name", "namespace", "node_ids", "hyperedges", "pairwise_expansion_performed", "scientific_interpretation_claimed"],
+      "properties": {
+        "contract": {"const": "IGM-MODEL-HYPERGRAPH-V1"},
+        "name": {"const": "model-hypergraph"},
+        "namespace": {"const": "model-hypergraph"},
+        "node_ids": {"$ref": "#/$defs/componentIds"},
+        "hyperedges": {"type": "array", "items": {"$ref": "#/$defs/hyperedge"}},
+        "pairwise_expansion_performed": {"const": false},
+        "scientific_interpretation_claimed": {"const": false}
+      }
+    },
+    "tensorFactorGraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract", "name", "namespace", "source_tensor", "candidate_nodes", "candidate_edges", "factorization_admitted", "scientific_interpretation_claimed"],
+      "properties": {
+        "contract": {"const": "IGM-TENSOR-FACTOR-GRAPH-V1"},
+        "name": {"const": "tensor-factor-graph"},
+        "namespace": {"const": "tensor-factor"},
+        "source_tensor": {"const": "centered-cartesian-coordinate-tensor"},
+        "candidate_nodes": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/string"}},
+        "candidate_edges": {"type": "array", "items": {"$ref": "#/$defs/graphEdge"}},
+        "factorization_admitted": {"type": "boolean"},
+        "scientific_interpretation_claimed": {"const": false}
+      }
+    },
+    "graphSeparation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model_graph_contract", "execution_graph_contract", "tensor_factor_graph_contract", "visualization_graph_contract", "model_execution_merged", "model_tensor_factor_merged", "model_visualization_merged", "execution_tensor_factor_merged", "execution_visualization_merged", "tensor_factor_visualization_merged", "cross_namespace_semantic_promotion_claimed"],
+      "properties": {
+        "model_graph_contract": {"const": "IGM-MODEL-GRAPH-V1"},
+        "execution_graph_contract": {"const": "IGM-EXEC-GRAPH-C5-K2-C3-V1"},
+        "tensor_factor_graph_contract": {"const": "IGM-TENSOR-FACTOR-GRAPH-V1"},
+        "visualization_graph_contract": {"const": "IGM-VISUALIZATION-GRAPH-V1"},
+        "model_execution_merged": {"const": false},
+        "model_tensor_factor_merged": {"const": false},
+        "model_visualization_merged": {"const": false},
+        "execution_tensor_factor_merged": {"const": false},
+        "execution_visualization_merged": {"const": false},
+        "tensor_factor_visualization_merged": {"const": false},
+        "cross_namespace_semantic_promotion_claimed": {"const": false}
+      }
+    },
+    "pairObservable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["left_index", "right_index", "left_id", "right_id", "distance_squared", "distance", "computational_contact", "biological_contact_claimed"],
+      "properties": {
+        "left_index": {"type": "integer", "minimum": 0, "maximum": 15},
+        "right_index": {"type": "integer", "minimum": 0, "maximum": 15},
+        "left_id": {"$ref": "#/$defs/string"},
+        "right_id": {"$ref": "#/$defs/string"},
+        "distance_squared": {"type": "number", "minimum": 0},
+        "distance": {"type": "number", "minimum": 0},
+        "computational_contact": {"type": "boolean"},
+        "biological_contact_claimed": {"const": false}
+      }
+    },
+    "accessibilityObservable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["component_id", "nearest_neighbor_distance", "clearance_threshold", "geometric_accessibility", "biochemical_accessibility_claimed"],
+      "properties": {
+        "component_id": {"$ref": "#/$defs/string"},
+        "nearest_neighbor_distance": {"type": "number", "minimum": 0},
+        "clearance_threshold": {"type": "number", "minimum": 0},
+        "geometric_accessibility": {"type": "boolean"},
+        "biochemical_accessibility_claimed": {"const": false}
+      }
+    },
+    "observables": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract", "contact_cutoff", "contact_cutoff_unit", "accessibility_clearance", "accessibility_clearance_unit", "pairs", "accessibility", "assumptions_explicit", "scientific_interpretation_claimed"],
+      "properties": {
+        "contract": {"const": "IGM-PAIR-ACCESSIBILITY-OBSERVABLES-V1"},
+        "contact_cutoff": {"type": "number", "minimum": 0},
+        "contact_cutoff_unit": {"const": "model-unit"},
+        "accessibility_clearance": {"type": "number", "minimum": 0},
+        "accessibility_clearance_unit": {"const": "model-unit"},
+        "pairs": {"type": "array", "minItems": 120, "items": {"$ref": "#/$defs/pairObservable"}},
+        "accessibility": {"type": "array", "minItems": 16, "items": {"$ref": "#/$defs/accessibilityObservable"}},
+        "assumptions_explicit": {"const": true},
+        "scientific_interpretation_claimed": {"const": false}
+      }
+    },
+    "scalarStatistics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["count", "minimum", "maximum", "mean", "median", "population_variance", "population_standard_deviation", "numerical_assumption"],
+      "properties": {
+        "count": {"type": "integer", "minimum": 1},
+        "minimum": {"type": "number", "minimum": 0},
+        "maximum": {"type": "number", "minimum": 0},
+        "mean": {"type": "number", "minimum": 0},
+        "median": {"type": "number", "minimum": 0},
+        "population_variance": {"type": "number", "minimum": 0},
+        "population_standard_deviation": {"type": "number", "minimum": 0},
+        "numerical_assumption": {"$ref": "#/$defs/string"}
+      }
+    },
+    "ensembleStatistics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract", "source_execution_contract", "source_execution_profile_id", "source_execution_profile_sha256", "sampling", "explicit_indices", "verification_samples", "phase3b_residual_gate_passed", "min_pair_distance", "max_pair_distance", "population_variance_used", "biological_ensemble_claimed", "scientific_interpretation_claimed"],
+      "properties": {
+        "contract": {"const": "IGM-ENSEMBLE-STATISTICS-V1"},
+        "source_execution_contract": {"const": "IGM-PENTA-CRT-CPU-V1"},
+        "source_execution_profile_id": {"const": "IGM-PENTA-CRT-SYMMETRIC-V0"},
+        "source_execution_profile_sha256": {"$ref": "#/$defs/hash"},
+        "sampling": {"const": "explicit-index-set"},
+        "explicit_indices": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "integer", "minimum": 0}},
+        "verification_samples": {"type": "integer", "minimum": 1, "maximum": 4096},
+        "phase3b_residual_gate_passed": {"const": true},
+        "min_pair_distance": {"$ref": "#/$defs/scalarStatistics"},
+        "max_pair_distance": {"$ref": "#/$defs/scalarStatistics"},
+        "population_variance_used": {"const": true},
+        "biological_ensemble_claimed": {"const": false},
+        "scientific_interpretation_claimed": {"const": false}
+      }
+    },
+    "uncertaintyUnknown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "reason"],
+      "properties": {
+        "kind": {"const": "unknown"},
+        "reason": {"$ref": "#/$defs/string"}
+      }
+    },
+    "uncertaintyInterval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "lower", "upper", "unit"],
+      "properties": {
+        "kind": {"const": "interval"},
+        "lower": {"type": "number"},
+        "upper": {"type": "number"},
+        "unit": {"$ref": "#/$defs/string"}
+      }
+    },
+    "normalParameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mean", "standard_deviation"],
+      "properties": {
+        "mean": {"type": "number"},
+        "standard_deviation": {"type": "number", "minimum": 0}
+      }
+    },
+    "uncertaintyDistribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "family", "parameters", "unit", "sampling_performed"],
+      "properties": {
+        "kind": {"const": "distribution"},
+        "family": {"const": "normal"},
+        "parameters": {"$ref": "#/$defs/normalParameters"},
+        "unit": {"$ref": "#/$defs/string"},
+        "sampling_performed": {"const": false}
+      }
+    },
+    "uncertaintyEnsemble": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "member_count", "minimum", "maximum", "statistic", "unit"],
+      "properties": {
+        "kind": {"const": "ensemble"},
+        "member_count": {"type": "integer", "minimum": 1},
+        "minimum": {"type": "number"},
+        "maximum": {"type": "number"},
+        "statistic": {"$ref": "#/$defs/string"},
+        "unit": {"$ref": "#/$defs/string"}
+      }
+    },
+    "uncertainties": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract", "supported_kinds", "records", "evidence_strength_promoted"],
+      "properties": {
+        "contract": {"const": "IGM-COMPUTATIONAL-UNCERTAINTY-V1"},
+        "supported_kinds": {"const": ["unknown", "interval", "distribution", "ensemble"]},
+        "records": {
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "anyOf": [
+              {"$ref": "#/$defs/uncertaintyUnknown"},
+              {"$ref": "#/$defs/uncertaintyInterval"},
+              {"$ref": "#/$defs/uncertaintyDistribution"},
+              {"$ref": "#/$defs/uncertaintyEnsemble"}
+            ]
+          }
+        },
+        "evidence_strength_promoted": {"const": false}
+      }
+    },
+    "tensorNetworkAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract", "source_tensor_contract", "source_tensor_shape", "candidate_rank", "dense_elements", "factorized_elements", "exact_reconstruction_verified", "material_reduction", "admitted", "performance_claim", "reason"],
+      "properties": {
+        "contract": {"const": "IGM-TENSOR-NETWORK-ASSESSMENT-V1"},
+        "source_tensor_contract": {"const": "IGM-DECLARED-TENSOR-V1"},
+        "source_tensor_shape": {"const": [16, 3]},
+        "candidate_rank": {"type": "integer", "minimum": 1},
+        "dense_elements": {"type": "integer", "minimum": 1},
+        "factorized_elements": {"type": "integer", "minimum": 1},
+        "exact_reconstruction_verified": {"const": true},
+        "material_reduction": {"const": false},
+        "admitted": {"const": false},
+        "performance_claim": {"const": false},
+        "reason": {"$ref": "#/$defs/string"}
+      }
+    },
+    "vortexNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "radial_squared", "phase_embedding_x", "phase_embedding_y", "axial_z"],
+      "properties": {
+        "id": {"$ref": "#/$defs/string"},
+        "radial_squared": {"type": "number", "minimum": 0},
+        "phase_embedding_x": {"type": "number"},
+        "phase_embedding_y": {"type": "number"},
+        "axial_z": {"type": "number"}
+      }
+    },
+    "vortexProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract", "name", "nodes", "phase_semantics", "biological_ontology_claimed", "scientific_interpretation_claimed"],
+      "properties": {
+        "contract": {"const": "IGM-VORTEX-INSPIRED-PROJECTION-V1"},
+        "name": {"const": "optional-vortex-inspired-coordinate-projection"},
+        "nodes": {"type": "array", "minItems": 16, "items": {"$ref": "#/$defs/vortexNode"}},
+        "phase_semantics": {"$ref": "#/$defs/string"},
+        "biological_ontology_claimed": {"const": false},
+        "scientific_interpretation_claimed": {"const": false}
+      }
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "gate_contract", "phase4_boundary_consumed", "arrays_not_automatically_tensors", "tensor_transform_semantics_declared", "graph_namespaces_separated", "observable_assumptions_explicit", "ensemble_assumptions_explicit", "uncertainty_kinds_explicit", "tensor_network_requires_exact_material_reduction", "vortex_projection_is_optional", "vortex_biological_ontology_claimed", "scientific_interpretation_claimed", "biological_validity_claimed", "clinical_validity_claimed", "accepted", "inv_bio_001", "phase5_gate", "gate_identity_sha256"],
+      "properties": {
+        "schema": {"const": "IGM-PHASE5-GATE-RECEIPT-V1"},
+        "gate_contract": {"const": "IGM-PHASE5-REPRESENTATION-GATE-V1"},
+        "phase4_boundary_consumed": {"const": true},
+        "arrays_not_automatically_tensors": {"const": true},
+        "tensor_transform_semantics_declared": {"const": true},
+        "graph_namespaces_separated": {"const": true},
+        "observable_assumptions_explicit": {"const": true},
+        "ensemble_assumptions_explicit": {"const": true},
+        "uncertainty_kinds_explicit": {"const": true},
+        "tensor_network_requires_exact_material_reduction": {"const": true},
+        "vortex_projection_is_optional": {"const": true},
+        "vortex_biological_ontology_claimed": {"const": false},
+        "scientific_interpretation_claimed": {"const": false},
+        "biological_validity_claimed": {"const": false},
+        "clinical_validity_claimed": {"const": false},
+        "accepted": {"const": true},
+        "inv_bio_001": {"const": "Perfect Mathematics Does Not Equal Perfect Biological Reality"},
+        "phase5_gate": {"const": "A representation earns scientific interpretation only from explicit evidence and validation"},
+        "gate_identity_sha256": {"$ref": "#/$defs/hash"}
+      }
+    }
   }
 }
