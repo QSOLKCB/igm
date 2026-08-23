@@ -168,9 +168,9 @@ jobs:
               f.write('\n')
 
           graph = copy.deepcopy(original)
-          if not graph['visualization_graph']['edges']:
-              raise SystemExit('reference visualization graph unexpectedly has no edges')
-          graph['visualization_graph']['edges'][0]['biological_relationship_claimed'] = True
+          if not graph['model_graph']['edges']:
+              raise SystemExit('reference model graph unexpectedly has no edges')
+          graph['model_graph']['edges'][0]['biological_relationship_claimed'] = True
           graph['bundle_sha256'] = v.compute_bundle_identity(graph)
           with open('/tmp/igm-phase5-bad-graph.json', 'w', encoding='utf-8') as f:
               json.dump(graph, f, indent=2)
