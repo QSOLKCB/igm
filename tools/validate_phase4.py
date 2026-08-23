@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the Phase 4 evidence-adapter contract and Phase 5 readiness state."""
+"""Validate the merged Phase 4 evidence-adapter contract and Phase 5 readiness state."""
 
 from __future__ import annotations
 
@@ -58,13 +58,13 @@ def load_json(relative: str):
 def uncertainty_requirement_present(parameter_schema: dict) -> bool:
     for rule in parameter_schema.get("allOf", []):
         condition = rule.get("if", {})
-        statuses = (
-            condition.get("properties", {})
-            .get("status", {})
-            .get("enum", [])
-        )
+        statuses = condition.get("properties", {}).get("status", {}).get("enum", [])
         required = set(rule.get("then", {}).get("required", []))
-        if EVIDENCE_BACKED.issubset(set(statuses)) and "uncertainty" in required:
+        if EVIDENCE_BACKED.issubset(set(statuses)) and {
+            "source_id",
+            "derivation",
+            "uncertainty",
+        }.issubset(required):
             return True
     return False
 
@@ -77,13 +77,15 @@ def main() -> int:
 
     evidence_doc = (ROOT / "docs/EVIDENCE_ADAPTERS.md").read_text(encoding="utf-8")
     for fragment in (
+        "Status: **complete and merged in PR #9**.",
         "IGM-SOURCE-ADAPTER-V1",
         "IGM-CRYO-EM-PARAMETER-ADAPTER-V1",
         "IGM-MD-TRAJECTORY-ADAPTER-V1",
         "IGM-BIOCHEMICAL-CALIBRATION-ADAPTER-V1",
         "IGM-PHASE4-EVIDENCE-BUNDLE-V1",
         "reference-only",
-        "conflict",
+        "duplicate candidate identities",
+        "actual committed bytes",
         PHASE4_GATE,
     ):
         if fragment not in evidence_doc:
@@ -95,21 +97,28 @@ def main() -> int:
             fail(f"Phase 4 roadmap item not marked implemented: {item}")
     if PHASE4_GATE not in roadmap:
         fail("Phase 4 gate text missing or changed in ROADMAP.md")
-    if "implemented in PR #9, pending review/merge" not in roadmap:
-        fail("Phase 4 roadmap status must remain pending review/merge until PR #9 merges")
+    if "Status: **complete and merged in PR #9**." not in roadmap:
+        fail("Phase 4 roadmap status must record merged completion")
+    if "Status: **READY_ON_MAIN**." not in roadmap:
+        fail("ROADMAP.md must record Phase 5 architectural readiness on main")
 
     readiness = (ROOT / "docs/PRE_PHASE5_READINESS.md").read_text(encoding="utf-8")
-    if "Status: **READY_ON_PHASE4_MERGE**." not in readiness:
-        fail("pre-Phase 5 readiness must be READY_ON_PHASE4_MERGE on this branch")
-    if "Status: **READY_ON_MAIN**." in readiness:
-        fail("Phase 5 readiness must not claim READY_ON_MAIN before Phase 4 merge")
+    if "Status: **READY_ON_MAIN**." not in readiness:
+        fail("pre-Phase 5 readiness must be READY_ON_MAIN after Phase 4 merge")
+    for fragment in (
+        "Phase 4 is complete and merged in PR #9",
+        PHASE4_GATE,
+        "does **not** mean that IGM now has a validated source-informed IgM model",
+    ):
+        if fragment not in readiness:
+            fail(f"pre-Phase 5 readiness missing post-merge boundary: {fragment!r}")
 
     model_schema = load_json("schemas/model-profile.schema.json")
     parameter_schema = model_schema["properties"]["parameters"]["items"]
     if "uncertainty" not in parameter_schema.get("properties", {}):
         fail("model profile schema must define evidence uncertainty")
     if not uncertainty_requirement_present(parameter_schema):
-        fail("evidence-backed parameters must structurally require uncertainty")
+        fail("evidence-backed parameters must structurally require source_id, derivation, and uncertainty")
     uncertainty = model_schema.get("$defs", {}).get("evidenceUncertainty", {})
     rules = uncertainty.get("allOf", [])
     rule_text = json.dumps(rules, sort_keys=True)
@@ -169,7 +178,7 @@ def main() -> int:
         if props.get(key, {}).get("const") is not False:
             fail(f"evidence bundle schema must pin {key}=false")
 
-    print("OK: IGM Phase 4 evidence-adapter gate and Phase 5 readiness validated")
+    print("OK: merged IGM Phase 4 gate validated; Phase 5 architecture is READY_ON_MAIN")
     return 0
 
 
