@@ -10,6 +10,7 @@ on:
       - "Cargo.lock"
       - "runtime/rust/src/lib_v5.rs"
       - "runtime/rust/src/phase4.rs"
+      - "runtime/rust/src/phase4_v2.rs"
       - "runtime/rust/src/evidence_main.rs"
       - "research/sources.json"
       - "research/source-snapshot-policy.json"
@@ -37,6 +38,7 @@ on:
       - "Cargo.lock"
       - "runtime/rust/src/lib_v5.rs"
       - "runtime/rust/src/phase4.rs"
+      - "runtime/rust/src/phase4_v2.rs"
       - "runtime/rust/src/evidence_main.rs"
       - "research/sources.json"
       - "research/source-snapshot-policy.json"
@@ -75,16 +77,15 @@ jobs:
 
       - name: Phase 4 source and readiness gates
         run: |
-          python3 -m json.tool schemas/source-registry.schema.json >/dev/null
-          python3 -m json.tool schemas/evidence-input.schema.json >/dev/null
-          python3 -m json.tool schemas/evidence-bundle.schema.json >/dev/null
-          python3 -m json.tool schemas/source-snapshot-policy.schema.json >/dev/null
-          python3 -m py_compile tools/validate_sources.py tools/validate_phase4.py
+          python3 -m py_compile tools/validate_sources.py tools/validate_phase4.py tools/validate_json_schema.py
+          python3 tools/validate_json_schema.py --self-test
+          python3 tools/validate_json_schema.py --schema schemas/source-registry.schema.json research/sources.json
+          python3 tools/validate_json_schema.py --schema schemas/source-snapshot-policy.schema.json research/source-snapshot-policy.json
+          python3 tools/validate_json_schema.py --schema schemas/evidence-input.schema.json research/evidence/cryo-em-pentamer-count.json
+          python3 tools/validate_json_schema.py profiles/igm-schematic-pentamer-v0.json
           python3 tools/validate_sources.py --self-test
           python3 tools/validate_sources.py
           python3 tools/validate_phase4.py
-          python3 tools/validate_json_schema.py --self-test
-          python3 tools/validate_json_schema.py profiles/igm-schematic-pentamer-v0.json
           python3 tools/validate_profile.py profiles/igm-schematic-pentamer-v0.json
 
       - name: Rust evidence adapter tests
@@ -134,39 +135,77 @@ jobs:
           print('OK: cryo-EM adapter emits bounded provenance-rich candidate without claim promotion')
           PY
 
-      - name: Conflict/concordance bundle preserves separate candidates
+      - name: Duplicate evidence cannot manufacture concordance
         run: |
-          ./target/release/igm-evidence bundle \
+          if ./target/release/igm-evidence bundle \
             research/evidence/cryo-em-pentamer-count.json \
             research/evidence/cryo-em-pentamer-count.json \
-            > /tmp/igm-evidence-bundle.json
+            > /tmp/igm-duplicate-bundle.json; then
+            echo 'expected duplicate candidate identity rejection' >&2
+            exit 1
+          fi
+          echo 'OK: duplicate evidence candidate cannot manufacture corroboration'
+
+      - name: Bundle schema matches emitted fields
+        run: |
+          ./target/release/igm-evidence bundle research/evidence/cryo-em-pentamer-count.json > /tmp/igm-evidence-bundle.json
+          python3 tools/validate_json_schema.py --schema schemas/evidence-bundle.schema.json /tmp/igm-evidence-bundle.json
           python3 - <<'PY'
           import json
           b = json.load(open('/tmp/igm-evidence-bundle.json', encoding='utf-8'))
-          assert b['schema'] == 'IGM-EVIDENCE-BUNDLE-V1'
-          assert b['bundle_contract'] == 'IGM-PHASE4-EVIDENCE-BUNDLE-V1'
-          assert b['state'] == 'concordant'
-          assert len(b['candidates']) == 2
-          assert b['resolved_value'] is None
+          assert b['state'] == 'single'
+          assert b['resolved_value'] == 5
           assert b['reconciliation_performed'] is False
           assert b['claim_strengthening_detected'] is False
           assert b['validation_level_promoted_by_adapter'] is False
-          print('OK: multi-source bundle preserves candidates without forced reconciliation')
+          assert b['inv_bio_001'] == 'Perfect Mathematics Does Not Equal Perfect Biological Reality'
+          print('OK: emitted evidence bundle conforms to published schema')
           PY
 
-      - name: Unsupported source claim is rejected
+      - name: Unsupported source claim or target is rejected
         run: |
           python3 - <<'PY'
           import json
           src = 'research/evidence/cryo-em-pentamer-count.json'
           data = json.load(open(src, encoding='utf-8'))
           data['support_statement'] = 'this stronger claim was never registered'
-          with open('/tmp/igm-bad-evidence.json', 'w', encoding='utf-8') as f:
+          with open('/tmp/igm-bad-support.json', 'w', encoding='utf-8') as f:
+              json.dump(data, f, indent=2)
+              f.write('\n')
+          data = json.load(open(src, encoding='utf-8'))
+          data['target']['id'] = 'totally_unrelated_parameter'
+          data['value'] = 999
+          with open('/tmp/igm-bad-target.json', 'w', encoding='utf-8') as f:
               json.dump(data, f, indent=2)
               f.write('\n')
           PY
-          if ./target/release/igm-evidence adapt /tmp/igm-bad-evidence.json; then
-            echo 'expected exact support-statement gate to reject stronger unregistered claim' >&2
+          if ./target/release/igm-evidence adapt /tmp/igm-bad-support.json; then
+            echo 'expected unregistered support-statement rejection' >&2
             exit 1
           fi
-          echo 'OK: source ingestion rejects unregistered stronger claim'
+          if ./target/release/igm-evidence adapt /tmp/igm-bad-target.json; then
+            echo 'expected registered support statement to remain bound to target/value/derivation' >&2
+            exit 1
+          fi
+          echo 'OK: source ingestion rejects unsupported support and target/value promotion'
+
+      - name: Extra evidence properties fail structural schema and runtime parsing
+        run: |
+          python3 - <<'PY'
+          import json
+          src = 'research/evidence/cryo-em-pentamer-count.json'
+          data = json.load(open(src, encoding='utf-8'))
+          data['uncertanty_typo'] = {'kind': 'unknown'}
+          with open('/tmp/igm-extra-property.json', 'w', encoding='utf-8') as f:
+              json.dump(data, f, indent=2)
+              f.write('\n')
+          PY
+          if python3 tools/validate_json_schema.py --schema schemas/evidence-input.schema.json /tmp/igm-extra-property.json; then
+            echo 'expected schema additionalProperties=false rejection' >&2
+            exit 1
+          fi
+          if ./target/release/igm-evidence adapt /tmp/igm-extra-property.json; then
+            echo 'expected strict Serde unknown-field rejection' >&2
+            exit 1
+          fi
+          echo 'OK: Phase 4 schema and runtime both reject unknown evidence fields'
