@@ -56,17 +56,13 @@ def load_json(relative: str):
 
 
 def uncertainty_requirement_present(parameter_schema: dict) -> bool:
+    required: set[str] = set()
     for rule in parameter_schema.get("allOf", []):
         condition = rule.get("if", {})
         statuses = condition.get("properties", {}).get("status", {}).get("enum", [])
-        required = set(rule.get("then", {}).get("required", []))
-        if EVIDENCE_BACKED.issubset(set(statuses)) and {
-            "source_id",
-            "derivation",
-            "uncertainty",
-        }.issubset(required):
-            return True
-    return False
+        if EVIDENCE_BACKED.issubset(set(statuses)):
+            required.update(rule.get("then", {}).get("required", []))
+    return {"source_id", "derivation", "uncertainty"}.issubset(required)
 
 
 def main() -> int:
