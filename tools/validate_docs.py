@@ -18,6 +18,7 @@ PHASE4_GATE = "Source ingestion must not silently convert observations into stro
 BENCHMARK_CONTRACT = "IGM-PHASE3B-SCALAR-VS-OPTIMIZED-BENCHMARK-V1"
 PRE_PHASE5_STATUS = "READY_ON_MAIN"
 EVIDENCE_BACKED = {"observed", "source-derived", "calibrated"}
+EARLY_LEVELS = {"V0", "V1", "V2"}
 
 REQUIRED_FILES = [
     "LICENSE",
@@ -128,6 +129,36 @@ def evidence_requirement_present(parameter_schema: dict) -> bool:
         if EVIDENCE_BACKED.issubset(set(statuses)):
             required.update(rule.get("then", {}).get("required", []))
     return {"source_id", "derivation", "uncertainty"}.issubset(required)
+
+
+def unknown_value_prohibition_present(parameter_schema: dict) -> bool:
+    for rule in parameter_schema.get("allOf", []):
+        condition = rule.get("if", {})
+        status = condition.get("properties", {}).get("status", {})
+        if status.get("const") != "unknown" or "status" not in condition.get("required", []):
+            continue
+        forbidden = rule.get("then", {}).get("not", {}).get("required", [])
+        if "value" in forbidden:
+            return True
+    return False
+
+
+def early_biological_nonclaim_present(schema: dict) -> bool:
+    for rule in schema.get("allOf", []):
+        condition = rule.get("if", {})
+        levels = condition.get("properties", {}).get("validation_level", {}).get("enum", [])
+        if not EARLY_LEVELS.issubset(set(levels)):
+            continue
+        biological = (
+            rule.get("then", {})
+            .get("properties", {})
+            .get("claims", {})
+            .get("properties", {})
+            .get("biological_validity_claimed", {})
+        )
+        if biological.get("const") is False:
+            return True
+    return False
 
 
 def main() -> int:
@@ -248,7 +279,11 @@ def main() -> int:
     ):
         if claims.get(key, {}).get("const") is not False:
             fail(f"upstream model schema must hard-code {key}=false")
+    if not early_biological_nonclaim_present(schema):
+        fail("model schema must keep V0-V2 biological_validity_claimed=false")
     parameter_schema = schema.get("properties", {}).get("parameters", {}).get("items", {})
+    if not unknown_value_prohibition_present(parameter_schema):
+        fail("model schema must forbid runtime values on unknown parameters")
     if not evidence_requirement_present(parameter_schema):
         fail("evidence-backed parameters must require source_id, derivation, and uncertainty")
     uncertainty = schema.get("$defs", {}).get("evidenceUncertainty", {})
@@ -285,6 +320,8 @@ def main() -> int:
     gate_props = gate_schema.get("properties", {})
     if gate_props.get("schema", {}).get("const") != "IGM-PHASE3C-GATE-RECEIPT-V1":
         fail("unexpected Phase 3C gate receipt schema")
+    if gate_props.get("gate_contract", {}).get("const") != "IGM-PHASE3C-ACCEPTANCE-GATE-V1":
+        fail("Phase 3C gate receipt schema must pin IGM-PHASE3C-ACCEPTANCE-GATE-V1")
     for key in (
         "profile_identity_preserved",
         "algorithm_identity_preserved",
