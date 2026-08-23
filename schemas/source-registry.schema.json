@@ -20,14 +20,36 @@
       "additionalProperties": false,
       "required": ["status", "redistribution"],
       "properties": {
-        "status": {
-          "enum": ["publicly-accessible", "open-access", "registration-required", "restricted"]
-        },
+        "status": {"enum": ["publicly-accessible", "open-access", "registration-required", "restricted"]},
         "redistribution": {"type": "string", "minLength": 1}
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": {"enum": ["parameter", "constraint"]},
+        "id": {"type": "string", "minLength": 1}
+      }
+    },
+    "evidenceMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "support_statement", "target", "derivation", "value"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[A-Za-z0-9._:-]+$"},
+        "support_statement": {"type": "string", "minLength": 1},
+        "target": {"$ref": "#/$defs/target"},
+        "derivation": {"enum": ["direct", "transformed", "calibrated", "inferred", "assumed", "unknown"]},
+        "value": {},
+        "unit": {"type": ["string", "null"]},
+        "notes": {"type": "string"}
       }
     },
     "source": {
       "type": "object",
+      "additionalProperties": false,
       "required": ["id", "class", "title", "url", "authority"],
       "properties": {
         "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{2,127}$"},
@@ -46,26 +68,16 @@
         "access": {"$ref": "#/$defs/access"},
         "supports": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
         "does_not_support": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+        "evidence_mappings": {"type": "array", "items": {"$ref": "#/$defs/evidenceMapping"}},
         "notes": {"type": "string"}
       },
       "allOf": [
         {
-          "if": {
-            "properties": {
-              "class": {"enum": ["public-structure", "peer-reviewed-literature", "preprint", "molecular-dynamics", "biochemical-measurement", "background-only"]}
-            },
-            "required": ["class"]
-          },
+          "if": {"properties": {"class": {"enum": ["public-structure", "peer-reviewed-literature", "preprint", "molecular-dynamics", "biochemical-measurement", "background-only"]}}, "required": ["class"]},
           "then": {"required": ["access", "supports", "does_not_support"]}
         },
         {
-          "if": {
-            "properties": {
-              "class": {"enum": ["public-structure", "peer-reviewed-literature"]},
-              "authority": {"const": "structural-source"}
-            },
-            "required": ["class", "authority"]
-          },
+          "if": {"properties": {"class": {"enum": ["public-structure", "peer-reviewed-literature"]}, "authority": {"const": "structural-source"}}, "required": ["class", "authority"]},
           "then": {
             "anyOf": [
               {"required": ["doi"]},
