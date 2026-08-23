@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
-"""Validate IGM profiles against the repository JSON Schema without third-party packages.
+"""Dependency-free JSON Schema subset validator used by IGM gates.
 
-This implements the Draft-2020-12 keyword subset used by model-profile.schema.json.
-Cross-field project rules remain in validate_profile.py.
-
-The validator fails closed if the schema introduces a validation keyword this
-implementation does not understand. Annotation keywords and x-igm-* extensions
-may be present without affecting validation semantics.
+The default mode validates model profiles against schemas/model-profile.schema.json.
+`--schema SCHEMA.json INSTANCE.json` validates any repository instance against an
+explicit schema. The validator fails closed if a schema introduces a keyword it
+would otherwise ignore.
 """
 
 from __future__ import annotations
 
 import json
+import math
 import re
 import sys
 from pathlib import Path
@@ -48,8 +47,11 @@ SUPPORTED_VALIDATION_KEYS = {
     "items",
     "not",
     "allOf",
+    "anyOf",
     "if",
     "then",
+    "minimum",
+    "maximum",
 }
 
 
@@ -84,6 +86,10 @@ def type_matches(value: Any, wanted: str) -> bool:
     if wanted == "number":
         return isinstance(value, (int, float)) and not isinstance(value, bool)
     raise ValidationError(f"unsupported schema type keyword: {wanted}")
+
+
+def is_number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
 def resolve_ref(root: dict[str, Any], ref: str) -> dict[str, Any]:
@@ -136,11 +142,16 @@ def audit_schema(schema: Any, path: str = "$schema") -> None:
         if key in schema:
             audit_schema(schema[key], f"{path}.{key}")
 
-    if "allOf" in schema:
-        if not isinstance(schema["allOf"], list):
-            raise ValidationError(f"{path}.allOf must be an array")
-        for index, child in enumerate(schema["allOf"]):
-            audit_schema(child, f"{path}.allOf[{index}]")
+    for key in ("allOf", "anyOf"):
+        if key in schema:
+            if not isinstance(schema[key], list) or not schema[key]:
+                raise ValidationError(f"{path}.{key} must be a non-empty array")
+            for index, child in enumerate(schema[key]):
+                audit_schema(child, f"{path}.{key}[{index}]")
+
+    for key in ("minimum", "maximum"):
+        if key in schema and not is_number(schema[key]):
+            raise ValidationError(f"{path}.{key} must be numeric")
 
 
 def validate(value: Any, schema: dict[str, Any], root: dict[str, Any], path: str = "$") -> None:
@@ -157,6 +168,15 @@ def validate(value: Any, schema: dict[str, Any], root: dict[str, Any], path: str
         types = wanted if isinstance(wanted, list) else [wanted]
         if not any(type_matches(value, item) for item in types):
             raise ValidationError(f"{path}: expected type {types}, got {type(value).__name__}")
+
+    if is_number(value):
+        numeric = float(value)
+        if not math.isfinite(numeric):
+            raise ValidationError(f"{path}: numeric value must be finite")
+        if "minimum" in schema and numeric < float(schema["minimum"]):
+            raise ValidationError(f"{path}: value below minimum {schema['minimum']!r}")
+        if "maximum" in schema and numeric > float(schema["maximum"]):
+            raise ValidationError(f"{path}: value above maximum {schema['maximum']!r}")
 
     if isinstance(value, str):
         if "minLength" in schema and len(value) < schema["minLength"]:
@@ -196,6 +216,17 @@ def validate(value: Any, schema: dict[str, Any], root: dict[str, Any], path: str
         else:
             raise ValidationError(f"{path}: matched forbidden `not` schema")
 
+    if "anyOf" in schema:
+        errors: list[str] = []
+        for sub in schema["anyOf"]:
+            try:
+                validate(value, sub, root, path)
+                break
+            except ValidationError as exc:
+                errors.append(str(exc))
+        else:
+            raise ValidationError(f"{path}: no anyOf branch matched: {'; '.join(errors)}")
+
     for sub in schema.get("allOf", []):
         if "if" in sub:
             try:
@@ -211,15 +242,29 @@ def validate(value: Any, schema: dict[str, Any], root: dict[str, Any], path: str
 def self_test() -> None:
     schema = load(SCHEMA_PATH)
     audit_schema(schema)
-    for probe in (
-        {"type": "number", "minimum": 0},
-        {"anyOf": [{"type": "string"}, {"type": "number"}]},
-    ):
-        try:
-            audit_schema(probe, "$self-test")
-        except ValidationError:
-            continue
+    validate(0, {"type": "number", "minimum": 0}, {"type": "number", "minimum": 0})
+    try:
+        validate(-1, {"type": "number", "minimum": 0}, {"type": "number", "minimum": 0})
+    except ValidationError:
+        pass
+    else:
+        raise ValidationError("self-test failed minimum enforcement")
+    validate("x", {"anyOf": [{"type": "string"}, {"type": "number"}]}, {"anyOf": [{"type": "string"}, {"type": "number"}]})
+    try:
+        audit_schema({"oneOf": [{"type": "string"}]}, "$self-test")
+    except ValidationError:
+        pass
+    else:
         raise ValidationError("self-test failed to reject unsupported validation keyword")
+
+
+def validate_instance(schema_path: Path, instance_path: Path) -> None:
+    schema = load(schema_path)
+    if not isinstance(schema, dict):
+        raise ValidationError(f"{schema_path}: schema root must be an object")
+    audit_schema(schema)
+    instance = load(instance_path)
+    validate(instance, schema, schema)
 
 
 def main(argv: list[str]) -> int:
@@ -231,18 +276,26 @@ def main(argv: list[str]) -> int:
             return 1
         print("OK: IGM JSON Schema subset validator self-test passed")
         return 0
-    if len(argv) != 1:
-        print("usage: validate_json_schema.py PROFILE.json | --self-test", file=sys.stderr)
+
+    if len(argv) == 3 and argv[0] == "--schema":
+        schema_path = Path(argv[1])
+        instance_path = Path(argv[2])
+    elif len(argv) == 1:
+        schema_path = SCHEMA_PATH
+        instance_path = Path(argv[0])
+    else:
+        print(
+            "usage: validate_json_schema.py PROFILE.json | --schema SCHEMA.json INSTANCE.json | --self-test",
+            file=sys.stderr,
+        )
         return 2
+
     try:
-        schema = load(SCHEMA_PATH)
-        audit_schema(schema)
-        profile = load(Path(argv[0]))
-        validate(profile, schema, schema)
+        validate_instance(schema_path, instance_path)
     except ValidationError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
         return 1
-    print(f"OK: {argv[0]} conforms to schemas/model-profile.schema.json")
+    print(f"OK: {instance_path} conforms to {schema_path}")
     return 0
 
 
