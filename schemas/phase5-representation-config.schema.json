@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/QSOLKCB/igm/schemas/phase5-representation-config.schema.json",
+  "title": "IGM Phase 5 Representation Config",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "profile_id",
+    "version",
+    "model_id",
+    "validation_level",
+    "contact_cutoff",
+    "accessibility_clearance",
+    "ensemble",
+    "tensor_network",
+    "vortex_inspired_projection_enabled",
+    "claims",
+    "notes"
+  ],
+  "properties": {
+    "schema": {"const": "IGM-PHASE5-REPRESENTATION-CONFIG-V1"},
+    "profile_id": {"const": "IGM-PHASE5-V0-REPRESENTATION"},
+    "version": {"const": "0.1.0"},
+    "model_id": {"const": "IGM-SCHEMATIC-PENTAMER-V0"},
+    "validation_level": {"const": "V0"},
+    "contact_cutoff": {"$ref": "#/$defs/assumedThreshold"},
+    "accessibility_clearance": {"$ref": "#/$defs/assumedThreshold"},
+    "ensemble": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "execution_profile_path",
+        "indices",
+        "verification_samples",
+        "sampling",
+        "population_variance",
+        "status",
+        "biological_ensemble_claimed",
+        "notes"
+      ],
+      "properties": {
+        "execution_profile_path": {
+          "type": "string",
+          "pattern": "^runtime/profiles/[A-Za-z0-9._-]+\\.json$"
+        },
+        "indices": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "integer", "minimum": 0}
+        },
+        "verification_samples": {"type": "integer", "minimum": 1, "maximum": 4096},
+        "sampling": {"const": "explicit-index-set"},
+        "population_variance": {"const": true},
+        "status": {"const": "assumed"},
+        "biological_ensemble_claimed": {"const": false},
+        "notes": {"type": "string", "minLength": 1}
+      }
+    },
+    "tensor_network": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assessment_enabled",
+        "require_exact_reconstruction",
+        "require_material_reduction",
+        "performance_claim",
+        "notes"
+      ],
+      "properties": {
+        "assessment_enabled": {"const": true},
+        "require_exact_reconstruction": {"const": true},
+        "require_material_reduction": {"const": true},
+        "performance_claim": {"const": false},
+        "notes": {"type": "string", "minLength": 1}
+      }
+    },
+    "vortex_inspired_projection_enabled": {"type": "boolean"},
+    "claims": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scientific_interpretation_claimed",
+        "biological_validity_claimed",
+        "clinical_validity_claimed",
+        "performance_claim"
+      ],
+      "properties": {
+        "scientific_interpretation_claimed": {"const": false},
+        "biological_validity_claimed": {"const": false},
+        "clinical_validity_claimed": {"const": false},
+        "performance_claim": {"const": false}
+      }
+    },
+    "notes": {"type": "string", "minLength": 1}
+  },
+  "$defs": {
+    "assumedThreshold": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "unit", "status", "scientific_interpretation_claimed", "notes"],
+      "properties": {
+        "value": {"type": "number", "minimum": 0.000000000001},
+        "unit": {"const": "model-unit"},
+        "status": {"const": "assumed"},
+        "scientific_interpretation_claimed": {"const": false},
+        "notes": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}
