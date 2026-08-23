@@ -5,5 +5,5 @@ mod prior;
 
 pub use prior::*;
 
-#[path = "phase4.rs"]
+#[path = "phase4_v2.rs"]
 pub mod evidence;
