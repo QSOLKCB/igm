@@ -26,6 +26,17 @@
         "patient-specific predictions",
         "clinical conclusions",
         "vortex ontology"
+      ],
+      "evidence_mappings": [
+        {
+          "id": "chen-2022.pentamer-cardinality",
+          "support_statement": "full-length human IgM pentamer cryo-EM observations",
+          "target": {"kind": "parameter", "id": "assembly_sector_count"},
+          "derivation": "direct",
+          "value": 5,
+          "unit": "count",
+          "notes": "Admits only pentamer cardinality. It does not admit exact biological C5 symmetry or a complete flexible-state ensemble."
+        }
       ]
     },
     {
@@ -84,15 +95,8 @@
         "status": "publicly-accessible",
         "redistribution": "Link-only by default. Verify the site's copyright and reuse terms before reproducing text or images."
       },
-      "supports": [
-        "general educational context only"
-      ],
-      "does_not_support": [
-        "structural parameter calibration",
-        "medical advice",
-        "clinical claims",
-        "model validation"
-      ]
+      "supports": ["general educational context only"],
+      "does_not_support": ["structural parameter calibration", "medical advice", "clinical claims", "model validation"]
     },
     {
       "id": "math.lim-2021-tensors-computations",
@@ -112,10 +116,7 @@
         "equivariance, multilinearity and separability as computational ideas",
         "tensor-network interpretation using graph-structured index relationships"
       ],
-      "does_not_support": [
-        "IgM biological ontology",
-        "IgM parameter values"
-      ]
+      "does_not_support": ["IgM biological ontology", "IgM parameter values"]
     },
     {
       "id": "graph.pagliarini-chicco-2026-nine-tips",
@@ -136,10 +137,7 @@
         "visualization layout can influence interpretation",
         "seek wet-lab biological validation after computational results"
       ],
-      "does_not_support": [
-        "a particular IgM graph topology",
-        "automatic biological interpretation of graph metrics"
-      ]
+      "does_not_support": ["a particular IgM graph topology", "automatic biological interpretation of graph metrics"]
     },
     {
       "id": "graph.koutrouli-2020-biological-network-era",
@@ -159,10 +157,7 @@
         "adjacency, sparse and list representations",
         "graph metrics, layouts and visualization choices"
       ],
-      "does_not_support": [
-        "a particular IgM graph topology",
-        "clinical interpretation of IGM outputs"
-      ]
+      "does_not_support": ["a particular IgM graph topology", "clinical interpretation of IGM outputs"]
     },
     {
       "id": "visualization.biofabric-longabaugh-2012",
