@@ -1,0 +1,133 @@
+name: IGM Phase 5 representation checks
+
+on:
+  push:
+    branches:
+      - main
+      - "agent/**"
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "runtime/rust/src/lib_v6.rs"
+      - "runtime/rust/src/phase5.rs"
+      - "runtime/rust/src/representation_main.rs"
+      - "runtime/profiles/igm-phase5-v0.json"
+      - "runtime/profiles/igm-penta-crt-cpu-v1.json"
+      - "profiles/igm-schematic-pentamer-v0.json"
+      - "schemas/phase5-representation-config.schema.json"
+      - "schemas/phase5-representation-bundle.schema.json"
+      - "tools/validate_phase5.py"
+      - "tools/validate_json_schema.py"
+      - "docs/PHASE5_REPRESENTATIONS.md"
+      - "ROADMAP.md"
+      - "AGENTS.md"
+      - ".github/workflows/phase5-representations.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "runtime/rust/src/lib_v6.rs"
+      - "runtime/rust/src/phase5.rs"
+      - "runtime/rust/src/representation_main.rs"
+      - "runtime/profiles/igm-phase5-v0.json"
+      - "runtime/profiles/igm-penta-crt-cpu-v1.json"
+      - "profiles/igm-schematic-pentamer-v0.json"
+      - "schemas/phase5-representation-config.schema.json"
+      - "schemas/phase5-representation-bundle.schema.json"
+      - "tools/validate_phase5.py"
+      - "tools/validate_json_schema.py"
+      - "docs/PHASE5_REPRESENTATIONS.md"
+      - "ROADMAP.md"
+      - "AGENTS.md"
+      - ".github/workflows/phase5-representations.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  representations:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Toolchain identity
+        run: |
+          rustc --version
+          cargo --version
+          python3 --version
+
+      - name: Phase 5 structural and governance gates
+        run: |
+          python3 -m py_compile tools/validate_phase5.py tools/validate_json_schema.py
+          python3 tools/validate_json_schema.py --self-test
+          python3 tools/validate_json_schema.py --schema schemas/phase5-representation-config.schema.json runtime/profiles/igm-phase5-v0.json
+          python3 tools/validate_phase5.py
+          python3 tools/validate_docs.py
+          python3 tools/validate_phase4.py
+          python3 tools/validate_profile.py profiles/igm-schematic-pentamer-v0.json
+
+      - name: Rust representation tests
+        run: cargo test --locked --all-targets
+
+      - name: Release build
+        run: cargo build --locked --release
+
+      - name: Emit deterministic Phase 5 representation bundle
+        run: |
+          ./target/release/igm-represent bundle \
+            profiles/igm-schematic-pentamer-v0.json \
+            runtime/profiles/igm-phase5-v0.json \
+            > /tmp/igm-phase5-bundle.json
+          python3 tools/validate_json_schema.py \
+            --schema schemas/phase5-representation-bundle.schema.json \
+            /tmp/igm-phase5-bundle.json
+          python3 tools/validate_phase5.py --bundle /tmp/igm-phase5-bundle.json
+
+      - name: Representation identity is deterministic
+        run: |
+          ./target/release/igm-represent bundle \
+            profiles/igm-schematic-pentamer-v0.json \
+            runtime/profiles/igm-phase5-v0.json \
+            > /tmp/igm-phase5-bundle-2.json
+          python3 - <<'PY'
+          import json
+          a = json.load(open('/tmp/igm-phase5-bundle.json', encoding='utf-8'))
+          b = json.load(open('/tmp/igm-phase5-bundle-2.json', encoding='utf-8'))
+          assert a['bundle_sha256'] == b['bundle_sha256']
+          assert a == b
+          print('OK: Phase 5 bundle identity and bytes are deterministic')
+          PY
+
+      - name: Tensor network fails closed without material reduction
+        run: |
+          python3 - <<'PY'
+          import json
+          b = json.load(open('/tmp/igm-phase5-bundle.json', encoding='utf-8'))
+          a = b['tensor_network_assessment']
+          assert a['exact_reconstruction_verified'] is True
+          assert a['material_reduction'] is False
+          assert a['admitted'] is False
+          assert a['performance_claim'] is False
+          print('OK: exact but non-reducing tensor factorization remains rejected')
+          PY
+
+      - name: Graph namespaces and biological nonclaims remain separate
+        run: |
+          python3 - <<'PY'
+          import json
+          b = json.load(open('/tmp/igm-phase5-bundle.json', encoding='utf-8'))
+          s = b['graph_separation']
+          for key, value in s.items():
+              if key.endswith('_merged'):
+                  assert value is False, key
+          assert s['cross_namespace_semantic_promotion_claimed'] is False
+          assert all(p['biological_contact_claimed'] is False for p in b['observables']['pairs'])
+          assert all(a['biochemical_accessibility_claimed'] is False for a in b['observables']['accessibility'])
+          assert b['scientific_interpretation_claimed'] is False
+          assert b['biological_validity_claimed'] is False
+          assert b['clinical_validity_claimed'] is False
+          print('OK: model/execution/tensor-factor/visualization semantics remain separated')
+          PY
