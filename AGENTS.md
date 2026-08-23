@@ -100,11 +100,11 @@ If a proposed task requires human participants or their data, stop and identify 
 
 ## Profile validation
 
-`schemas/model-profile.schema.json` defines the portable structural contract.
+`schemas/model-profile.schema.json` defines the portable structural contract. Kind-specific uncertainty structure is enforced by schema validation through `tools/validate_json_schema.py`.
 
-`tools/validate_profile.py` is the dependency-free semantic pre-execution gate for cross-field requirements that portable JSON Schema cannot express directly, including uniqueness by component `id` and uncertainty-kind semantics.
+`tools/validate_profile.py` is the dependency-free semantic pre-execution gate for cross-field requirements that portable JSON Schema cannot express directly, including uniqueness by component `id`, source resolution, derivation consistency, participant references, and numeric bounds.
 
-Future runtimes, Pages tools, Phase 5 projections, and accelerator paths must reject a profile that fails either structural/schema validation or the semantic pre-execution gate. Do not bypass the validator because a renderer, tensor projection, graph adapter, or kernel could otherwise consume the data.
+Future runtimes, Pages tools, Phase 5 projections, and accelerator paths must reject a profile that fails either structural/schema validation or the semantic pre-execution gate. Do not bypass either validator because a renderer, tensor projection, graph adapter, or kernel could otherwise consume the data.
 
 ## Phase 4 evidence ingestion
 
